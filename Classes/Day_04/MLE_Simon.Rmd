@@ -1,0 +1,136 @@
+---
+title: "MLE"
+output: html_notebook
+---
+
+## Monte Carlo simulation of flipping a weighted coin
+
+```{r}
+
+prob = 0.7      # prob of heads
+n = 1000
+sims = 8
+
+x = replicate(1000, rbinom(sims, size=1, prob=prob))
+sums = colSums(x)
+
+# Plot hist 
+hist(sums, 
+     xlab="number of heads",
+     freq=FALSE,
+     breaks=(c(0:9)-0.5))
+
+```
+
+### TASK
+Plot predicted prob with `dbinom`
+```{r}
+nTosses <- 10
+k <- 0:nTosses
+pHeads <- 0.5
+pK <- dbinom(k, nTosses, pHeads)
+
+plot(k, pK, type="h",
+     xlab="Number of heads",
+     ylab="Probability")
+```
+
+
+### Probability of a given number of heads
+```{r}
+nTrials <- 8
+k <- 0:nTrials
+pHeads <- 0.7
+pK <- dbinom(k, nTrials, pHeads)
+
+pK[6]
+
+pData <- dbinom(5, 8, 0.7)    
+pData
+```
+
+### Continuous distributions
+#### Weibull
+```{r}
+# Plot porb density for Weibull
+scale = 200
+shape = 2
+shift = 0
+
+x <- seq(0, 1000, length.out=100)
+y <-dweibull(x, shape=shape, scale=scale)
+plot(x,y,
+     type="l",
+     xlab="RT (ms)",
+     ylab="Prob Density")
+# What is p(data|parameters) for data = 200ms?
+dweibull(200, shape, scale)
+```
+
+## Exercise 2
+
+```{r}
+# Import rts
+rts = scan('rt.txt')
+
+scale = 200
+shape = 2
+shift = 0
+
+theta = c(scale, shape, shift)
+
+# Calculate log likelihood for a single data point under the Weibull
+dweibull(rts-shift, scale=scale, shape=shape , log=TRUE)
+
+# Eztend this calculation for multiple data points
+# Convert to -lnL and sum
+
+
+# Wrap in a function that takes two arguments: theta (vector of parameters) and data vector (rts)
+negLL = function(rts, theta){
+  scale = theta[1]
+  shape = theta[2]
+  shift = theta[3]
+  
+  LL = -1*sum(dweibull(rts-shift, scale=scale, shape=shape , log=TRUE))
+  if(is.na(LL)){
+    print(theta)
+  }
+  return(LL)
+}
+# Fit to data using optim()
+
+xout <- optim(theta, negLL, rts=rts)
+xout
+```
+
+### Simons version of the above exercise
+
+```{r}
+## Maximum likelihood estimation of some data
+rt <- scan("rt.txt")
+
+weiblnL <- function(theta, rt){
+  
+  shift <- theta[1]
+  shape <- theta[2]
+  scale <- theta[3]
+  
+  if (shift>=min(rt) | any(theta<.Machine$double.neg.eps) ){ # a hack to avoid NaNs (won't work with gradient descent)
+    return(1000000)
+  } 
+  else {
+    return(
+      -sum(dweibull(rt-shift,scale=scale,shape=shape,log=TRUE))
+    )
+  }
+}
+
+# parameters are shift, scale, shape
+fit <- optim(c(1,1.8,mean(rt)),      # mean rt is a good starting point for scale
+             weiblnL, rt=rt)
+
+hist(rt, probability = TRUE, breaks=20)
+lines(0:1000, dweibull((0:1000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
+```
+

@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1531128704714.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "15|6|50|0|\n52|51|74|0|\n113|6|135|0|\n",
+    "hash" : "173246282",
+    "id" : "B5BA1CD2",
+    "lastKnownWriteTime" : 1531146603,
+    "last_content_update" : 1531209912856,
+    "path" : "~/Documents/pCloud Synced/PhD/WORKSHOPS/2018_CMCC/git/CMCC-2018/Assignments/01/CMCC_assignment_01.Rmd",
+    "project_path" : "CMCC_assignment_01.Rmd",
+    "properties" : {
+        "chunk_output_type" : "inline",
+        "cursorPosition" : "90,2",
+        "scrollLine" : "52"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

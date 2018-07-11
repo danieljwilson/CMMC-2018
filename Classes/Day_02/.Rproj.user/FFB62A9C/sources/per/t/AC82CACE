@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1531123101036.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3173500001",
+    "id" : "AC82CACE",
+    "lastKnownWriteTime" : 1531123406,
+    "last_content_update" : 1531123406051,
+    "path" : "~/Documents/pCloud Synced/PhD/WORKSHOPS/2018_CMCC/git/CMCC-2018/Classes/Day_02/Day_02_morning.Rmd",
+    "project_path" : "Day_02_morning.Rmd",
+    "properties" : {
+        "chunk_output_type" : "inline",
+        "cursorPosition" : "28,5",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

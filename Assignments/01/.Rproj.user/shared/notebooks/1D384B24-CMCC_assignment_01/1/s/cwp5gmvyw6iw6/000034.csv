@@ -1,0 +1,6 @@
+"0","compute_t_vals('norm', 'norm', 1000)"
+"0","# PLOT"
+"0","par(mfrow=c(3,3))"
+"0","for (i in 1:9){"
+"0","  plot_tests(i, t_vals, params)"
+"0","}"

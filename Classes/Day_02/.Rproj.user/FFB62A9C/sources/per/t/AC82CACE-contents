@@ -1,0 +1,29 @@
+---
+title: "2018_07_09.1"
+output: html_notebook
+---
+
+# Rstudio Projects and RMarkdown
+
+`Papaja` library for writing papers in APA6 format.
+`Bookdown`: wikis, papers, etc.
+
+You can run this type of thing to do all of your analyses in a separate script.
+`knitr::read_chunk('file.R')`
+---
+
+# Magrittr
+### All about pipes...
+
+Passing info from one command to another command.
+
+Example:
+
+`fun_a %>% fun_b`
+
+See *magrittrExample.R* for an example.
+
+---
+# Tidyverse
+
+dplyr
