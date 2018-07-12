@@ -1,0 +1,72 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## FITTING WEIBULL
+
+```{r}
+## Maximum likelihood estimation of some data
+
+fixations = read.csv("data/study_1/fixations.csv")
+# pull out middle fixations
+rt = fixations$fix_time[fixations$fix_num>1 & fixations$rev_fix_num>1]
+
+weiblnL <- function(theta, rt){
+  
+  shift <- theta[1]
+  shape <- theta[2]
+  scale <- theta[3]
+  
+  if (shift>=min(rt) | any(theta<.Machine$double.neg.eps) ){ # a hack to avoid NaNs (won't work with gradient descent)
+    return(1000000)
+  } 
+  else {
+    return(
+      -sum(dweibull(rt-shift,scale=scale,shape=shape,log=TRUE))
+    )
+  }
+}
+
+# parameters are shift, scale, shape
+fit <- optim(c(1,1.8,mean(rt)),      # mean rt is a good starting point for scale
+             weiblnL, rt=rt)
+
+hist(rt, probability = TRUE, breaks=40)
+lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
+fit
+```
+
+# Fit individuals
+
+```{r}
+## Maximum likelihood estimation of some data
+
+fixations = read.csv("data/study_1/fixations.csv")
+# pull out middle fixations
+rt = fixations$fix_time[fixations$fix_num>1 & fixations$rev_fix_num>1]
+
+weiblnL <- function(theta, rt){
+  
+  shift <- theta[1]
+  shape <- theta[2]
+  scale <- theta[3]
+  
+  if (shift>=min(rt) | any(theta<.Machine$double.neg.eps) ){ # a hack to avoid NaNs (won't work with gradient descent)
+    return(1000000)
+  } 
+  else {
+    return(
+      -sum(dweibull(rt-shift,scale=scale,shape=shape,log=TRUE))
+    )
+  }
+}
+
+# parameters are shift, scale, shape
+fit <- optim(c(1,1.8,mean(rt)),      # mean rt is a good starting point for scale
+             weiblnL, rt=rt)
+
+hist(rt, probability = TRUE, breaks=40)
+lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
+fit
+```

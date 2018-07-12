@@ -109,7 +109,7 @@ xout
 ```{r}
 ## Maximum likelihood estimation of some data
 rt <- scan("rt.txt")
-
+?dweibull
 weiblnL <- function(theta, rt){
   
   shift <- theta[1]
