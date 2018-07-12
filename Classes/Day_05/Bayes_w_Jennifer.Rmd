@@ -72,3 +72,29 @@ hist(bin_counts)
 summary(bin_counts)
 ```
 
+## JAGS
+
+```{r}
+library(rjags)
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

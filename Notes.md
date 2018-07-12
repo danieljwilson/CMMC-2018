@@ -248,6 +248,8 @@ In [probability theory](https://en.wikipedia.org/wiki/Probability_theory) and�
 
 Approximates multi-dimensional integrals
 
+**GOAL**: Come up with a graph that has the correct **stationary distribution**
+
 
 
 
