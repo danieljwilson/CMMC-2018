@@ -1,0 +1,74 @@
+---
+title: "Bayes with Jennifer"
+output: html_notebook
+---
+
+## Calculate a posterior
+Plot all three curves
+* Prior
+* Likelihood
+* Posterior
+
+```{r}
+num_trials = 100
+num_correct = 90
+
+prior <- function(p) {
+  dbeta(2 * (p-.5), 2, 2)
+}
+
+likelihood <- function(p){
+  dbinom(num_correct, num_trials, p)
+}
+
+post.usc <- function(p){
+  prior(p) * likelihood(p)
+}
+  
+x = seq(0.5, 1., 0.01)
+
+plot(prior, 0.5, 1)
+plot(likelihood, 0.5, 1)
+plot(post.usc, 0.5, 1)
+
+
+optimize(post.usc, interval=c(0.5,1), maximum=TRUE)
+```
+
+
+## Rejection Algorithm
+
+```{r}
+
+max = optimize(post.usc, interval=c(0.5,1), maximum=TRUE)$objective
+
+ran_x = runif(10000, 0.5, 1)
+ran_y = runif(10000, 0, max)
+
+post_y = post.usc(ran_x)
+
+under_curve_x = ran_x[ran_y<post_y]
+  
+hist(under_curve_x, breaks=25)  
+summary(under_curve_x)
+
+```
+
+
+### Alternate (but not correct) version
+Just taking values from the y value of the distribution to create histogram bars (centers)
+
+```{r}
+# Create bins
+x = seq(0.5, 0.9999, 0.5/10000)
+offset = 0.5/10000/2
+
+# Calculate center
+bin_center = x + offset
+
+bin_height = post.usc(bin_center)
+bin_counts = rep(bin_center, 10000*bin_height)
+hist(bin_counts)
+summary(bin_counts)
+```
+

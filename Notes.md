@@ -1,3 +1,5 @@
+
+
 # PROGRAMMING
 
 ### SOURCING
@@ -77,20 +79,20 @@ Verbal theory ≈ 2^n models
 
 ### Modelling Framework
 
-##### SYMBOLIC (e.g. ACT-R) 
+##### SYMBOLIC (e.g. ACT-R)
 
 - Concepts & features 
 - propositions 
 - productions 
 
-##### CONNECTIONIST 
+##### CONNECTIONIST
 
 Roughly approximates how the brain works. 
 
 - units 
 - connection weights 
 
-##### SPATIAL (e.g. SIMPLE, GCM) 
+##### SPATIAL (e.g. SIMPLE, GCM)
 
 - memory trace = point in (multi-dimensional) space 
 
@@ -98,7 +100,7 @@ Roughly approximates how the brain works.
 
 ### Connectionist Models
 
-##### Representation of Items: 
+##### Representation of Items:
 
 - Localist 
   - each item = single unique unit (grandmother neuron) 
@@ -113,24 +115,24 @@ Roughly approximates how the brain works.
 
 #### Free Parameters
 
-* estimated from data to maximize fit
-* parsimoney of model determined (in part) by their number
+- estimated from data to maximize fit
+- parsimoney of model determined (in part) by their number
 
 #### Fixed Parameters
 
-----
+------
 
 ### Discrepancy Function
 
 Difference between **DATA** (from measurements) and **PREDICTIONS** (from model)
 
-* Must yield single numeric value
+- Must yield single numeric value
 
-* Must be continuous
+- Must be continuous
 
-* Goal = minimization
+- Goal = minimization
 
-* AKA cost function, error function, objective function
+- AKA cost function, error function, objective function
 
   
 
@@ -138,25 +140,127 @@ Difference between **DATA** (from measurements) and **PREDICTIONS** (from model)
 
 **R**esidual/Root **M**ean **S**quared **D**eviation ("least squares")
 
-* One version of discrepancy function
-* No obvious statistical properties
+- One version of discrepancy function
+- No obvious statistical properties
 
----
+------
 
 ### Parameter Estimation Techniques
 
 ##### SIMPLEX
 
-* Simplex = set of D+1 interconnected points for arbitrary dimensionality D (2D = triangle, 3D = pyramid)
-* Dimensionality = number of parameters
+- Simplex = set of D+1 interconnected points for arbitrary dimensionality D (2D = triangle, 3D = pyramid)
+- Dimensionality = number of parameters
 
 **SIMPLEX** ISSUES
 
-* Inadvisble to use SIMPLEX with kore than 5 parameters (even 2 can be tough...)
+- Inadvisble to use SIMPLEX with kore than 5 parameters (even 2 can be tough...)
+- Can only move downhill (can get stuck in local minima)
 
-* Can only move downhill (can get stuck in local minima)
+------
 
-  
+### STEVEN'S LAW
+
+### GCM
+
+Model of categorization
+
+**Categorization**: group things based on properties (e. g. given the age and income of a US citizen, likelihood democrat/republican)
+
+
+
+### SIMPLE MODEL OF MEMORY
+
+Model of human memory retreival. Applied to tasks such as serial recall, free recall, probed recall.
+
+- No STM-LTM distinction in model
+- Scale-Invariant Memory, Perception and Learning 
+- Memories organized in terms of their temporal distances (single point in multi-dimensional space)
+- NO trace decay
+- The *confusability* of any two items is a function of the **ratio** of their temporal distances
+
+
+
+# MAXIMUM LIKELIHOOD ESTIMATION
+
+### Distribution
+
+Assigns probabilities to events
+
+**Binomial** is probability of various discrete events given:
+
+- Prob of occurence
+- Number of events 
+
+**MLE**: Maximize the probability of the data given the model
+
+**NOTE**: ***Likelihood*** is not  `p(parameters | data)`
+
+
+
+### Continuous Distributions
+
+Defined by probability densities
+
+
+
+# BAYESIAN
+
+*p(x|theta) = L(theta|x)*
+
+The real distribution of interest is *p(theta|x)*
+
+#### Bayes Law
+
+![P(A\vert B)P(B)=P(A\cap B)=P(B\vert A)P(A)](https://wikimedia.org/api/rest_v1/media/math/render/svg/59128ff464b3c99087db4fb3712ba8237bd77565)
+
+
+
+![P(A|B)={\frac  {P(B|A)P(A)}{P(B)}}](https://wikimedia.org/api/rest_v1/media/math/render/svg/4f2024ac51846888d62e91c5771d1a06512d93b3)
+
+
+
+Need to specify our uncertainty with respect to the parameters before seeing the data.
+
+**Uncertainty** is captured by the **prior distribution**.
+
+After seeing the data, our **updated knowledge** is described by a **posterior distribution**.
+
+
+
+#### Beta Distribution
+
+In [probability theory](https://en.wikipedia.org/wiki/Probability_theory) and [statistics](https://en.wikipedia.org/wiki/Statistics), the **beta distribution** is a family of continuous [probability distributions](https://en.wikipedia.org/wiki/Probability_distribution) defined on the interval [0, 1][parametrized](https://en.wikipedia.org/wiki/Parametrization) by two positive [shape parameters](https://en.wikipedia.org/wiki/Shape_parameter), denoted by *α* and *β*, that appear as exponents of the random variable and control the shape of the distribution.
+
+| Notation   | Beta(*α*, *β*)                                               |
+| ---------- | ------------------------------------------------------------ |
+| Parameters | *α* > 0 [shape](https://en.wikipedia.org/wiki/Shape_parameter) ([real](https://en.wikipedia.org/wiki/Real_number)) *β* > 0 [shape](https://en.wikipedia.org/wiki/Shape_parameter) ([real](https://en.wikipedia.org/wiki/Real_number)) |
+
+
+
+![Probability density function for the Beta distribution](https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Beta_distribution_pdf.svg/325px-Beta_distribution_pdf.svg.png)
+
+
+
+
+
+### Markov Chain Monte Carlo
+
+Approximates multi-dimensional integrals
+
+
+
+
+
+
+
+
+
+shifted Weibull vs exGaussian?
+
+
+
+
 
 
 
