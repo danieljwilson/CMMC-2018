@@ -7,21 +7,27 @@ rm(list=ls())
 library(R2jags)
 
 k <- 3 #number of cases
-data <- matrix(c(70, 50, 30, 50, 7, 5, 3, 5, 10, 0, 0, 10), nrow=k, ncol=4, byrow=T)
+#data <- matrix(c(70, 50, 30, 50, 7, 5, 3, 5, 10, 0, 0, 10), nrow=k, ncol=4, byrow=T)
+# data from study (Control, Group1, Group2)
+
+data <- matrix(c(148, 29, 32, 151,
+                 150, 40, 30, 140,
+                 150, 51, 40, 139), nrow=k, ncol=4, byrow=T)
 
 h <- data[,1]
 f <- data[,2]
 MI <- data[,3]
 CR <- data[,4]
-s <- h + MI
-n <- f + CR
+s <- h + MI       # signal = hits + misses
+n <- f + CR       # noise = false alarms + correct rejections
 
 data <- list("h", "f", "k", "s", "n") # to be passed on to JAGS
 myinits <- list(
   list(d = rep(0,k), c = rep(0,k)))  
 
 # parameters to be monitored:	
-parameters <- c("d", "c", "thetah", "thetaf")
+parameters <- c("d", "c", "thetah", "thetaf")   # note that thetah and thetaf are NOT actually parameters...
+                                                # just passing in to keep track of them...
 
 # The following command calls JAGS with specific options.
 # For a detailed description see the R2jags documentation.

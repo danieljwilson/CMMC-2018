@@ -252,6 +252,21 @@ Approximates multi-dimensional integrals
 
 
 
+### Signal Detection Theory
+
+**SDT Counts:**
+
+* Hits
+* Misses
+* False Alarms
+* Correct Rejection
+
+**Precision** = 1/variance
+
+
+
+
+
 
 
 

@@ -14,11 +14,6 @@
 # install.packages("R2jags")
 # Now you are all set.
 
-devtools::install_url("https://cran.r-project.org/bin/macosx/el-capitan/contrib/3.5/rjags_4-6.tgz",
-                      args="--configure-args='--with-jags-include=/Users/djw/homebrew/opt/jags/include/JAGS
-                      --with-jags-lib=/Users/djw/homebrew/opt/jags/lib'
-                      "
-)
 
 # clears workspace:  
 rm(list=ls()) 
@@ -28,8 +23,8 @@ rm(list=ls())
 
 library(R2jags)
 
-k <- 9
-n <- 10
+k <- 50
+n <- 100
 
 data <- list("k", "n") # to be passed on to JAGS
 
@@ -59,3 +54,4 @@ Nbreaks <- 80
 y       <- hist(theta, Nbreaks, plot=F)
 plot(c(y$breaks, max(y$breaks)), c(0,y$density,0), type="S", lwd=2, lty=1,
      xlim=c(0,1), xlab="Rate", ylab="Posterior Density") 
+
