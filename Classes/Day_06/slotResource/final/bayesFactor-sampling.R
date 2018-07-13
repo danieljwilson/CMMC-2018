@@ -1,4 +1,4 @@
-source("objective.R")
+source("slotResource/final/objective.R")
 #the data
 changeK = c(35,25); changeN = c(40,40)
 sameK = c(5,15); sameN = c(40,40)

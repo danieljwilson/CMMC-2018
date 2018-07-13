@@ -26,6 +26,7 @@ out_slots = optim(par = startPars,
 
 #transform max-likelihood into AIC
 slotAIC = -2 * log(out_slots$value) + 2 * length(startPars)
+slotBIC = -2 * log(out_slots$value) + 2 * log(160)              # N = 160. N is 40 trials * 2 (change/same) * 2 (setSize 4/8)
 
 
 #do same for resource model
@@ -44,4 +45,5 @@ out_resource = optim(par = startPars,
                      control = list(fnscale = -1))
 
 resourceAIC = -2 * log(out_resource$value) + 2 * length(startPars)
+resourceBIC = -2 * log(out_resource$value) + 3 * log(160)             # 3 is parameters here
 

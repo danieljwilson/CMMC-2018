@@ -1,0 +1,33 @@
+---
+title: "Day 06: Model Selection"
+output: html_notebook
+---
+
+## Exercise: Calculate AICs
+
+```{r}
+deviance_a = c(100,200,300,400,500)   # 2 free parameters
+deviance_b = c(50,100,300,400,600)    # 3 free parameters
+
+
+AIC <- function(deviance, parameters){
+  AICs =  deviance + 2 * parameters
+  return(AICs)
+}
+
+a_AICs = AIC(deviance_a, 2)
+b_AICs = AIC(deviance_b, 3)
+a_AICs
+b_AICs
+
+sum(a_AICs)
+sum(b_AICs)
+```
+
+
+##
+
+```{r}
+
+```
+

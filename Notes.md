@@ -301,6 +301,45 @@ Log-likelihood is a biased measure of **KL** divergence
 
 **AIC = -2 ln L + 2K** (where K is the number of parameters)
 
+**AICc** = better version of AIC
+
+
+
+### Bayes Factors
+
+**Rough Interpretation**
+
+1 < BF < 3 = barely worth mentioning
+
+3 < BF < 10 = Substantial
+
+BF > 10 = Strong
+
+
+
+### Bayes
+
+Posterior = Likelihood * Prior / Evidence
+
+Evidence = probability of the **data** given the **model**
+
+**Prior** x **Likelihood** determines prediction
+
+---
+
+#### Where do priors come from?
+
+* Theoretical knowledge about parameter
+* Inspect prior predictives
+
+---
+
+
+
+
+
+
+
 
 
 
