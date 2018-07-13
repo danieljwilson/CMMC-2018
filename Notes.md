@@ -265,6 +265,14 @@ Approximates multi-dimensional integrals
 
 
 
+# MODEL SELECTION
+
+**Fit isn't everything.** 
+
+Need to account for **flexibility**/**complexity**
+
+
+
 
 
 
