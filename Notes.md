@@ -271,9 +271,35 @@ Approximates multi-dimensional integrals
 
 Need to account for **flexibility**/**complexity**
 
+---
+
+### Factors that inform complexity:
+
+1. Number of parameters
+2. Extent of parameter space
+3. Functional form of model (how *wriggly* the model is...average curvature of the likelihood surface)
+
+---
+
+#### Complex models fit NOISE
+
+---
+
+**CROSS VALIDATION**: predicting data that haven't been fit
 
 
 
+## Information Criteria
+
+**Deviance** (-2 ln L): measure of information lost between the data and the model
+
+[**Kullback-Leibler**](https://www.countbayesie.com/blog/2017/5/9/kullback-leibler-divergence-explained) measure of information (lost)
+
+### Akaike's Information Criteria
+
+Log-likelihood is a biased measure of **KL** divergence
+
+**AIC = -2 ln L + 2K** (where K is the number of parameters)
 
 
 

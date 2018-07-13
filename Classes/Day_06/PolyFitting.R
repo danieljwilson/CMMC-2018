@@ -4,7 +4,7 @@ rm(list=ls())
 
 TrainData <- read.csv("PolyTrainData.csv",header=TRUE)
 
-n <- 1 # Order of the polynomal to fit - play around with this to find what you think is the best-fitting model (based on plotting data and model fit in lines 11-15)
+n <- 3 # Order of the polynomal to fit - play around with this to find what you think is the best-fitting model (based on plotting data and model fit in lines 11-15)
 
 MyPolyFit <- lm(y~poly(x,n),data=TrainData)
 plot(TrainData$x,TrainData$y)
@@ -15,15 +15,19 @@ lines(xx,yy,col="grey",lty=1,lwd=2)
 
 
 
+par(mfrow=c(2,4))
 
+for (i in 1:8){
 
-
-
-
-
-
-# Now load in some "test data" and plot it against the model prediction
-TestData <- read.csv("PolyTestData.csv",header=TRUE)
-plot(TestData$x,TestData$y)
-# Calculate the 'yy' model prediction
-lines(xx,yy,col="grey",lty=1,lwd=2)
+  n <- i # Order of the polynomal to fit
+  
+  MyPolyFit <- lm(y~poly(x,n),data=TrainData)
+  xx <- seq(min(TrainData$x),max(TrainData$x),length.out=100)
+  yy <- predict(MyPolyFit,data.frame(x=xx))
+  
+  # Now load in some "test data" and plot it against the model prediction
+  TestData <- read.csv("PolyTestData.csv",header=TRUE)
+  plot(TestData$x,TestData$y)
+  # Calculate the 'yy' model prediction
+  lines(xx,yy,col="grey",lty=1,lwd=2)
+}

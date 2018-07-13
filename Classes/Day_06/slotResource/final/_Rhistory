@@ -1,0 +1,386 @@
+#likelihood for slot model
+slotObjective = function(x, changeK, changeN, sameK, sameN, setSize){
+#set up parameters
+k = pnorm(x[1]) * max(setSize)
+g = pnorm(x[2])
+#set 'd', the probability of remembering the item
+d = pmin(k/setSize,1)
+#get predicted probability for hits and false alarms
+predH = d + (1-d)*g
+predF = (1-d)*g
+#set up likelihood
+logLikelihood = array(dim = c(2,length(setSize)))
+logLikelihood[1,] = dbinom(x = changeK, size = changeN, prob = predH)
+logLikelihood[2,] = dbinom(x = sameK, size = sameN, prob = predF)
+return(-prod(logLikelihood))
+}
+#likelihood for resource model
+resourceObjective = function(x, changeK, changeN, sameK, sameN, setSize){
+#set up parameters
+dPrime = x[1:2]
+beta = exp(x[3])
+#get predicted probability for hits and false alarms
+predH = pnorm(dPrime/2 - log(beta)/dPrime)
+predF = pnorm(-dPrime/2 - log(beta)/dPrime)
+#set up likelihood
+logLikelihood = array(dim = c(2,length(setSize)))
+logLikelihood[1,] = dbinom(x = changeK, size = changeN, prob = predH)
+logLikelihood[2,] = dbinom(x = sameK, size = sameN, prob = predF)
+return(-prod(logLikelihood))
+}
+#predictions from slot models
+slotPreds = function(x, setSize){
+k = x[1] * max(setSize)
+g = x[2]
+d = pmin(k/setSize,1)
+#get predicted probability for hits and false alarms
+predH = d + (1-d)*g
+predF = (1-d)*g
+return(list(pH = predH, pF = predF))
+}
+joint.density.plot <- function(x, y, Title=NULL, contour=TRUE, color=FALSE,
+Trace=NULL,xlim=c(0,1),ylim=c(0,1),xlab='',ylab='',axes=T)
+{
+### Initial Checks
+xname <- xlab
+yname <- ylab
+x <- as.vector(x)
+y <- as.vector(y)
+if(!identical(length(y), length(x)))
+stop("vectors x and y must be the same length.")
+if(any(!is.finite(x)))
+stop("x must have finite values.")
+if(any(!is.finite(y)))
+stop("y must have finite values.")
+### Two-Dimensional Kernel Density Estimates
+kde2d <- function(x, y, h, n=50, lims=c(xlim,ylim))
+{
+nx <- length(x)
+if(any(!is.finite(lims)))
+stop("x and y must have finite values.")
+n <- rep(n, length.out=2L)
+gx <- seq.int(lims[1L], lims[2L], length.out=n[1L])
+gy <- seq.int(lims[3L], lims[4L], length.out=n[2L])
+h <- if(missing(h)) c(bandwidth.nrd(x), bandwidth.nrd(y))
+else rep(h, length.out=2L)
+h <- h / 4 # for S's bandwidth scale
+ax <- outer(gx, x, "-" ) / h[1L]
+ay <- outer(gy, y, "-" ) / h[2L]
+z <- tcrossprod(matrix(dnorm(ax), , nx),
+matrix(dnorm(ay), , nx)) / (nx * h[1L] * h[2L])
+list(x=gx, y=gy, z=z)
+}
+bandwidth.nrd <- function(x)
+{
+r <- quantile(x, c(0.25, 0.75))
+h <- (r[2L] - r[1L]) / 1.34
+4 * 1.06 * min(sqrt(var(x)), h) * length(x) ^ (-1/5)
+}
+dd <- kde2d(x,y)
+if(color == FALSE) {
+plot(x, y, cex=0.1, main=Title, xlab=xname, ylab=yname, col="gray",xlim=xlim,ylim=ylim,axes=axes)}
+else if(color == TRUE) {
+crp <- colorRampPalette(c("black","red","yellow","white"), space="rgb")
+image(dd, main=Title, xlab=xname, ylab=yname, col=crp(200),xlim=xlim,ylim=ylim,axes=axes)
+}
+if (axes==F) box()
+if(contour == TRUE) {contour(dd, nlevels=10, add=TRUE)}
+if(!is.null(Trace)) {
+if(length(Trace) != 2) stop("Trace requires 2 elements.")
+if(Trace[1] >= Trace[2])
+stop("Trace[1] not smaller than Trace[2].")
+if(Trace[1] < 1) stop("Trace[1] < 1.")
+if(Trace[2] > length(x)) stop("Trace[2] > length(x).")
+lines(x[Trace[1]:Trace[2]], y[Trace[1]:Trace[2]], col="green")
+points(x[Trace[1]], y[Trace[1]], cex=0.5, col="green")
+}
+}
+source("objective.R")
+#the data
+changeK = c(35,25); changeN = c(40,40)
+sameK = c(5,15); sameN = c(40,40)
+setSize = c(4,8)
+#sample parameters from priors for parameters of slot model
+nSamples = 1e5
+priorK = runif(nSamples,0,1)
+priorG = runif(nSamples,0,1)
+source("objective.R")
+#the data
+changeK = c(35,25); changeN = c(40,40)
+sameK = c(5,15); sameN = c(40,40)
+setSize = c(4,8)
+#sample parameters from priors for parameters of slot model
+nSamples = 1e5
+priorK = runif(nSamples,0,1)
+priorG = runif(nSamples,0,1)
+install.packages("cubature")
+library("cubature")
+?adaptIntegrate
+slot_margL <- adaptIntegrate(slotObjective,c(0,0),c(1,1), changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+slot_margL
+source("objective.R")
+#the data
+changeK = c(35,25); changeN = c(40,40)
+sameK = c(5,15); sameN = c(40,40)
+setSize = c(4,8)
+#sample parameters from priors for parameters of slot model
+nSamples = 1e5
+priorK = runif(nSamples,0,1)
+priorG = runif(nSamples,0,1)
+#get a likelihood for all parameters sampled from the priors
+slotLikelihoods = array(dim = c(nSamples))
+for (i in 1:nSamples){
+slotLikelihoods[i] = slotObjective(x = c(qnorm(priorK[i]),qnorm(priorG[i])), changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+}
+#get marginal likelihood for slot model
+slotMarginal = mean(slotLikelihoods)
+slotMarginal
+source("objective.R")
+#the data
+changeK = c(35,25); changeN = c(40,40)
+sameK = c(5,15); sameN = c(40,40)
+setSize = c(4,8)
+#sample parameters from priors for parameters of slot model
+nSamples = 1e5
+priorK = runif(nSamples,0,8)
+priorG = runif(nSamples,0,1)
+#get a likelihood for all parameters sampled from the priors
+slotLikelihoods = array(dim = c(nSamples))
+for (i in 1:nSamples){
+slotLikelihoods[i] = slotObjective(x = c(priorK[i],priorG[i]), changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+}
+#get marginal likelihood for slot model
+slotMarginal = mean(slotLikelihoods)
+slotMarginal
+slot_margL <- adaptIntegrate(slotObjective,c(0,0),c(8,1), changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+library("cubature")
+slot_margL <- adaptIntegrate(slotObjective,c(0,0),c(8,1), changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+slot_margL
+1e5
+10^5
+source("objective.R")
+#the data
+changeK = c(35,25); changeN = c(40,40)
+sameK = c(5,15); sameN = c(40,40)
+setSize = c(4,8)
+#sample parameters from priors for parameters of slot model
+nSamples = 1e5
+priorK = runif(nSamples,0,8)
+priorG = runif(nSamples,0,1)
+#get a likelihood for all parameters sampled from the priors
+slotLikelihoods = array(dim = c(nSamples))
+for (i in 1:nSamples){
+slotLikelihoods[i] = slotObjective(x = c(priorK[i],priorG[i]), changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+}
+#get marginal likelihood for slot model
+slotMarginal = mean(slotLikelihoods)
+slotMarginal
+source("objective.R")
+#the data
+changeK = c(35,25); changeN = c(40,40)
+sameK = c(5,15); sameN = c(40,40)
+setSize = c(4,8)
+#sample parameters from priors for parameters of slot model
+nSamples = 1e5
+priorK = runif(nSamples,0,8)
+priorG = runif(nSamples,0,1)
+#get a likelihood for all parameters sampled from the priors
+slotLikelihoods = array(dim = c(nSamples))
+for (i in 1:nSamples){
+slotLikelihoods[i] = slotObjective(x = c(priorK[i],priorG[i]), changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+}
+#get marginal likelihood for slot model
+slotMarginal = mean(slotLikelihoods)
+slotMarginal
+source("objective.R")
+#the data
+changeK = c(35,25); changeN = c(40,40)
+sameK = c(5,15); sameN = c(40,40)
+setSize = c(4,8)
+#sample parameters from priors for parameters of slot model
+nSamples = 1e5
+priorK = runif(nSamples,0,8)
+priorG = runif(nSamples,0,1)
+#get a likelihood for all parameters sampled from the priors
+slotLikelihoods = array(dim = c(nSamples))
+for (i in 1:nSamples){
+slotLikelihoods[i] = slotObjective(x = c(priorK[i],priorG[i]), changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+}
+#get marginal likelihood for slot model
+slotMarginal = mean(slotLikelihoods)
+slotMarginal
+?adaptIntegrate
+library("cubature")
+slot_margL <- adaptIntegrate(slotObjective,c(0,0),c(8,1), changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize,
+tol = 1e-10)
+slotMarginal
+slot_margL
+slotLikelihoods
+mean(slotLikelihoods)
+library("cubature")
+slotWrap <- function(pmat){
+nEval <- dim(pmat)[1]
+ret <- zeros(nEval)
+for (i in 1:nEval){
+ret[i] <- slotObjective(x = pmat[i,], changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+}
+}
+slot_margL <- adaptIntegrate(slotWrap,c(0,0),c(8,1))
+library("cubature")
+slotWrap <- function(pmat){
+nEval <- dim(pmat)[1]
+ret <- matrix(0,nEval,1)
+for (i in 1:nEval){
+ret[i] <- slotObjective(x = pmat[i,], changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+}
+}
+slot_margL <- adaptIntegrate(slotWrap,c(0,0),c(8,1))
+library("cubature")
+slotWrap <- function(pmat){
+nEval <- dim(pmat)[1]
+ret <- matrix(0,nEval,1)
+print(pmat)
+for (i in 1:nEval){
+ret[i] <- slotObjective(x = pmat[i,], changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+}
+}
+slot_margL <- adaptIntegrate(slotWrap,c(0,0),c(8,1))
+library("cubature")
+slotWrap <- function(pmat){
+nEval <- dim(pmat)[1]
+ret <- matrix(0,nEval,1)
+print(pmat)
+for (i in 1:nEval){
+ret[i] <- slotObjective(x = pmat[i,], changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+}
+}
+slot_margL <- adaptIntegrate(slotWrap,c(0,0),c(8,1))
+library("cubature")
+slotWrap <- function(pmat){
+print(pmat)
+nEval <- dim(pmat)[1]
+ret <- matrix(0,nEval,1)
+print(pmat)
+for (i in 1:nEval){
+ret[i] <- slotObjective(x = pmat[i,], changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+}
+}
+slot_margL <- adaptIntegrate(slotWrap,c(0,0),c(8,1))
+library("cubature")
+slotWrap <- function(pmat){
+print(pmat)
+nEval <- dim(pmat)[1]
+print(nEval)
+ret <- matrix(0,nEval,1)
+for (i in 1:nEval){
+ret[i] <- slotObjective(x = pmat[i,], changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+}
+}
+slot_margL <- adaptIntegrate(slotWrap,c(0,0),c(8,1))
+x = c(0,1)
+dim(x)
+length(x)
+pmat <- matrix(0,2,3)
+dim(pmat)
+length(pmat)
+x[1,]
+library("cubature")
+slotWrap <- function(pmat){
+# if (dim(pmat)==NULL){
+#   nEval <- 1
+# } else
+# nEval <- dim(pmat)[1]
+# print(nEval)
+# ret <- matrix(0,nEval,1)
+print(pmat)
+slotObjective(x = c(0.5,0.5), changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+# for (i in 1:nEval){
+#   ret[i] <- slotObjective(x = pmat[i,], changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+# }
+}
+slot_margL <- adaptIntegrate(slotWrap,c(0,0),c(8,1))
+?dunif
+library("cubature")
+slotWrap <- function(x){
+slotObjective(x, changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)* # likelihood
+dunif(x[1],0,8)* # prior on k
+dunif(x[1],0,1) # prior on g
+}
+slot_margL <- adaptIntegrate(slotWrap,c(0,0),c(8,1))
+slot_margL
+library("cubature")
+slotWrap <- function(x){
+slotObjective(x, changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)* # likelihood
+dunif(x[1],0,8)* # prior on k
+dunif(x[2],0,1) # prior on g
+}
+slot_margL <- adaptIntegrate(slotWrap,c(0,0),c(8,1))
+slot_margL
+slotMarginal
+q()
+library("cubature")
+slotWrap <- function(x){
+slotObjective(x, changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)* # likelihood
+dunif(x[1],0,8)* # prior on k
+dunif(x[2],0,1) # prior on g
+}
+slot_margL <- adaptIntegrate(slotWrap,
+c(0,0),
+c(8,1))
+install.packages("cubature")
+library("cubature")
+slotWrap <- function(x){
+slotObjective(x, changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)* # likelihood
+dunif(x[1],0,8)* # prior on k
+dunif(x[2],0,1) # prior on g
+}
+slot_margL <- adaptIntegrate(slotWrap,
+c(0,0),
+c(8,1))
+source("objective.r")
+library("cubature")
+slotWrap <- function(x){
+slotObjective(x, changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)* # likelihood
+dunif(x[1],0,8)* # prior on k
+dunif(x[2],0,1) # prior on g
+}
+slot_margL <- adaptIntegrate(slotWrap,
+c(0,0),
+c(8,1))
+source("objective.R")
+#the data
+changeK = c(35,25); changeN = c(40,40)
+sameK = c(5,15); sameN = c(40,40)
+setSize = c(4,8)
+#sample parameters from priors for parameters of slot model
+nSamples = 1e5
+priorK = runif(nSamples,0,8)
+priorG = runif(nSamples,0,1)
+#get a likelihood for all parameters sampled from the priors
+slotLikelihoods = array(dim = c(nSamples))
+for (i in 1:nSamples){
+slotLikelihoods[i] = slotObjective(x = c(priorK[i],priorG[i]), changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+}
+#get marginal likelihood for slot model
+slotMarginal = mean(slotLikelihoods)
+priorDPrime1 = runif(nSamples,0,4)
+priorDPrime2 = runif(nSamples,0,4)
+priorBeta = runif(nSamples,0.2,5)
+#get a likelihood for all parameters sampled from the priors
+resourceLikelihoods = array(dim = c(nSamples))
+for (i in 1:nSamples){
+resourceLikelihoods[i] = resourceObjective(x = c(priorDPrime1[i],priorDPrime2[i],priorBeta[i]), changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)
+}
+#get marginal likelihood for slot model
+resourceMarginal = mean(resourceLikelihoods)
+bayesFactor = slotMarginal / resourceMarginal
+library("cubature")
+slotWrap <- function(x){
+slotObjective(x, changeK = changeK, changeN = changeN, sameK = sameK, sameN = sameN, setSize = setSize)* # likelihood
+dunif(x[1],0,8)* # prior on k
+dunif(x[2],0,1) # prior on g
+}
+slot_margL <- adaptIntegrate(slotWrap,
+c(0,0),
+c(8,1))
+slot_margL
