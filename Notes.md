@@ -336,6 +336,52 @@ Evidence = probability of the **data** given the **model**
 
 
 
+# Shrinkage
+
+Prediction can be **improved** by adusting each individual's prediction $y_{i}$
+
+
+
+ towards the mean across individuals y:
+
+**z = x̄ + c(y – x̄)**
+
+- (y – x̄) = difference between an individual score and the sample mean,
+
+- c = a shrinking factor.
+
+  
+
+#### Intuitions
+
+* The more means there are, the more they should be considered (more shrinkage)
+* The more precisely a mean is known, the less it should be affected by others (less shrinkage)
+* The more discrepant the emans are, the less likely they are to measure something common (less shrinkage)
+
+
+
+# Measurement vs. Explanatory Models
+
+### Explanatory Models
+
+* **GOAL**: Explain experimental effects
+* Fit all conditions with common parameters
+* **Examples**: GCM, SIMPLE, TBRS*
+
+### Measurement Models
+
+* **GOAL**: measure interpretable latent variables
+* Fit each condition separately
+* **Examples**: SDT, Diffusion Model
+
+
+
+
+
+
+
+
+
 
 
 
