@@ -376,45 +376,21 @@ Prediction can be **improved** by adusting each individual's prediction $y_{i}$
 
 
 
-
-
-**GORDON**
+GORDON
 
 Agent Based Models
 
-Exercise on Agent Based Models
-
-Decision-by-sampling model of judgement and choice
 
 
 
-**KLAUS**
-
-Measurement models for visual working memory
-
-Mixture Model & Other model
-
-Bayesian Hierarchical Models
 
 
 
-**CHRIS**
-
-Fitting DDMs in Jags
 
 
 
-BOB
 
-CHRIS
 
-CAS
-
-KLAUS
-
-GORDON
-
-ARNDT
 
 
 

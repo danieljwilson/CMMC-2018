@@ -1,0 +1,54 @@
+# Hierarchical Generic Measurement Model for Cspan-R experiment - template
+# NOT WORKING!!
+
+model{
+   # Likelihood
+   for (i in 1:nsubj) {
+   
+      for (c in 1:2)  {
+	      k[i,c,1:5] ~ dmulti(P[i,c,1:5], N[i,c])   # predict the data
+  }
+
+   # Plate (or "loop") over subjects    
+   for (i in 1:nsubj)  {
+    
+    # plate over conditions (although both conditions are treated identically) 
+    # condition 1 = short, 2 = long free time after distractors
+	  for (cond in 1:2) {
+	  
+      # draw c and a parameters from Gaussian distribution over subjects (truncated at 0)
+      C[i,cond] ~ dnorm(muC, sgC)T(0,)
+      A[i,cond] ~ dnorm(muA, sgA)T(0,)
+      F[i,cond] ~ dbeta(Fa, Fb)
+
+		  Act[i,cond,1] = 0.1 + A[i,cond] + C[i,cond]              # Activation of correct response,  
+		  Act[i,cond,2] = 0.1 + A[i,cond]                      # of other list items,
+		  Act[i,cond,3] = 0.1 + F[i,cond] * (A[i,cond] + C[i,cond])   # of distractors in position, 
+		  Act[i,cond,4] = 0.1 + F[i,cond] * A[i,cond]              # for other distractors,
+		  Act[i,cond,5] = 0.1                                        # and for NPLs
+		}
+
+  	# Normalize Activation (Luce's Choice rule)
+    for (cond in 1:2) {
+      sumAct[i,cond] = inprod( Act[i,cond,1:5], ch )   # denominator
+      # inprod computes inner product = dot product
+      
+      for (cat in 1:5){
+        P[i,cond,cat] = (Act[i,cond,cat] * ch[cat/sumAct[i,cond])
+      }
+      
+
+	   }  # end of plate over conditions
+
+  }  # end of plate over subjects
+
+  # Priors For Group Distributions
+  muC ~ dgamma(shapeC, rateC)
+  muA ~ dgamma(shapeA, rateA)    # T(.001,)
+  
+  sgC ~ dgamma(1, 0.01)
+  sgA ~ dgamma(1, 0.01)       # T(.001,)
+  aF ~ dgamma(1, 0.1)
+  bF ~ dgamma(1, 0.01)
+}
+}

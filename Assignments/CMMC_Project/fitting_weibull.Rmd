@@ -9,8 +9,49 @@ output: html_notebook
 ## Maximum likelihood estimation of some data
 
 fixations = read.csv("data/study_1/fixations.csv")
+
+mid_rts = fixations$fix_time[fixations$fix_num>1 & fixations$rev_fix_num>1]
+
+weiblnL <- function(theta, rt){
+  
+  shift <- theta[1]
+  shape <- theta[2]
+  scale <- theta[3]
+  
+  if (shift>=min(rt) | any(theta<.Machine$double.neg.eps) ){ # a hack to avoid NaNs (won't work with gradient descent)
+    return(1000000)
+  } 
+  else {
+    return(
+      -sum(dweibull(rt-shift,scale=scale,shape=shape,log=TRUE))
+    )
+  }
+}
+
+# parameters are shift, scale, shape
+fit <- optim(c(1,1.8,mean(mid_rts)),      # mean rt is a good starting point for scale
+             weiblnL, rt=mid_rts)
+
+hist(mid_rts, probability = TRUE, breaks=40)
+lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
+fit
+```
+
+# Fit individuals
+
+```{r}
+## Maximum likelihood estimation of some data
+
+fixations = read.csv("data/study_1/fixations.csv")
 # pull out middle fixations
-rt = fixations$fix_time[fixations$fix_num>1 & fixations$rev_fix_num>1]
+
+subjects = unique(fixations$parcode)
+
+# pull out middle fixations
+for (i in subjects){
+  mid_rt[i] = fixations$fix_time[fixations$fix_num>1 & fixations$rev_fix_num>1 & fixations$parcode == i]
+}
+
 
 weiblnL <- function(theta, rt){
   
@@ -37,36 +78,36 @@ lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), 
 fit
 ```
 
-# Fit individuals
+
+## FIT SUBJECT MID RT USING DDM
 
 ```{r}
-## Maximum likelihood estimation of some data
 
-fixations = read.csv("data/study_1/fixations.csv")
-# pull out middle fixations
-rt = fixations$fix_time[fixations$fix_num>1 & fixations$rev_fix_num>1]
 
-weiblnL <- function(theta, rt){
-  
-  shift <- theta[1]
-  shape <- theta[2]
-  scale <- theta[3]
-  
-  if (shift>=min(rt) | any(theta<.Machine$double.neg.eps) ){ # a hack to avoid NaNs (won't work with gradient descent)
-    return(1000000)
-  } 
-  else {
-    return(
-      -sum(dweibull(rt-shift,scale=scale,shape=shape,log=TRUE))
-    )
-  }
-}
 
-# parameters are shift, scale, shape
-fit <- optim(c(1,1.8,mean(rt)),      # mean rt is a good starting point for scale
-             weiblnL, rt=rt)
+```
 
-hist(rt, probability = TRUE, breaks=40)
-lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
-fit
+
+### PLOT: SECOND FIXATION TIME VS. VALUE & MULTIPLIER
+```{r}
+df <- v3
+
+ggplot() +
+  geom_smooth(aes(x=secondVal/secondMult, y=`2_fixation`, group = factor(secondMult), colour = factor(secondMult)), df) +
+  #geom_smooth(aes(x=summedVal, y=logRT, colour = "flip"), subset(total_M_clean3, flip==1)) +
+  coord_cartesian(xlim = c(-1, 1))  +
+  #ggtitle("Second Fixation Timing vs Total Value")
+  #geom_point(shape=1) +    # Use hollow circles
+  geom_smooth() + # Add a loess smoothed fit curve with confidence region
+  theme_minimal()+
+  guides(colour=guide_legend("Attribute\nWeight")) +
+  scale_x_continuous(name="Attribute Base Value ($)", seq(-1,1,0.2), limits = c(-1,1))+
+  scale_y_continuous(name = "Attribute Dwell Time (s)") +
+  theme(axis.title.x=element_text(size=14),
+        axis.title.y = element_text(size = 14),
+        legend.title = element_text(size = 10))+
+  theme(legend.position="right")
+
+#Test for SIG
+summary(lm(`2_fixation`~secondVal + secondMult, df))
 ```
