@@ -69,20 +69,79 @@ weiblnL <- function(theta, rt){
   }
 }
 
-# parameters are shift, scale, shape
-fit <- optim(c(1,1.8,mean(rt)),      # mean rt is a good starting point for scale
-             weiblnL, rt=rt)
 
-hist(rt, probability = TRUE, breaks=40)
-lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
-fit
+# init subject fits
+subject_fits = NULL
+
+# 3x3 plot
+par(mfrow=c(3,3))
+
+for (i in 1:length(mid_mat[,1])) {
+  rts = mid_mat[i,]
+  rts = rts[!is.na(rts)]
+
+  # parameters are shift, scale, shape
+  fit <- optim(c(1,1.8,mean(rts)),      # mean rt is a good starting point for scale
+               weiblnL, rt=rts)
+  
+  hist(rts, probability = TRUE, breaks=40,
+       main = paste0("Subject ", i, " middle fixations"))
+  lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
+  
+  subject_fits[[i]] = fit
+}
+
 ```
 
 
-## FIT SUBJECT MID RT USING DDM
+## FIT SUBJECT MID RT USING LBA
 
 ```{r}
 
+LBAnL <- function(theta, rt){
+  
+  # Start point varies from trial to trial in the interval [0, A] (uniform distribution).
+  # Average amount of evidence before evidence accumulation across trials is A/2.
+  
+  A <- theta[1] 
+  
+  # response threshold. (b - A/2) is a measure of "response caution"
+  b <- theta[2] 
+  
+  # non-decision time or response time constant (in seconds). Lower bound for the
+  # duration of all non-decisional processes (encoding and response execution).
+  t0 <- theta[3]
+  
+  # variability of non-decision time, such that t0 is uniformly distributed between
+  # t0 and t0 + st0. Default is 0. Can be trialwise, and will be recycled to length
+  # of rt.
+  st0 <- theta[4]
+  
+  # character specifying the distribution of the drift rate.
+  # Possible values are c("norm", "gamma", "frechet", "lnorm"), default is "norm".
+  distribution<- theta[5]
+  
+  # 
+    shape <- theta[2]
+  scale <- theta[3]
+  
+  if (shift>=min(rt) | any(theta<.Machine$double.neg.eps) ){ # a hack to avoid NaNs (won't work with gradient descent)
+    return(1000000)
+  } 
+  else {
+    return(
+      -sum(dweibull(rt-shift,scale=scale,shape=shape,log=TRUE))
+    )
+  }
+}
+
+# parameters are shift, scale, shape
+fit <- optim(c(1,1.8,mean(mid_rts)),      # mean rt is a good starting point for scale
+             weiblnL, rt=mid_rts)
+
+hist(mid_rts, probability = TRUE, breaks=40)
+lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
+fit
 
 
 ```
@@ -111,3 +170,197 @@ ggplot() +
 #Test for SIG
 summary(lm(`2_fixation`~secondVal + secondMult, df))
 ```
+
+# ISOLATE INDIVIDUAL MIDDLE FIXATIONS 
+
+```{r}
+# Extract middle fix by subject
+
+# Look at row (starting with 2nd fix):
+df1 <- v1
+df2 <- v3
+
+# create num_fixations for df1
+for (i in 1:length(df1$Trial)){
+  df1$num_fixations[i] = length(df1$imageSequence[[i]])
+}
+
+# only look at trials with more than 2 fixations
+df1 <- df1[df1$num_fixations > 2,]          # leaves 3820 trials
+df2 <- df2[df2$num_fixations > 2,]          # leaves 7406 trials
+
+mid_fix_num_1 = sum(df1$num_fixations) - 2*length(df1$Trial)
+mid_fix_num_2 = sum(df2$num_fixations) - 2*length(df2$trial)
+
+# define empty df
+middle_fix_df1 <- data.frame(matrix(ncol = 4, nrow = mid_fix_num_1))
+colnames(middle_fix_df1) <- c("subject", "fix_dur", "base_val", "mult_val")
+
+middle_fix_df2 <- data.frame(matrix(ncol = 4, nrow = mid_fix_num_2))
+colnames(middle_fix_df2) <- c("subject", "fix_dur", "base_val", "mult_val")
+
+# populate dfs with middle fixations with: subject, fixation duration, base value and mult value
+counter = 1
+
+for (i in 1:length(df1$Trial)){
+  for (j in 1:(df1$num_fixations[i]-2)){
+    middle_fix_df1$subject[counter] = df1$subject[i]
+    middle_fix_df1$fix_dur[counter] = df1[i,48+j]
+    if (j%%2==1){
+      middle_fix_df1$base_val[counter] = df1$secondVal[i] / df1$secondMult[i]
+      middle_fix_df1$mult_val[counter] = df1$secondMult[i]
+    }
+    else if (j%%2==0){
+      middle_fix_df1$base_val[counter] = df1$firstVal[i] / df1$firstMult[i]
+      middle_fix_df1$mult_val[counter] = df1$firstMult[i]
+    }
+    counter = counter + 1
+  }
+}
+
+counter = 1
+
+for (i in 1:length(df2$trial)){
+  for (j in 1:(df2$num_fixations[i]-2)){
+    middle_fix_df2$subject[counter] = df2$subject[i]
+    middle_fix_df2$fix_dur[counter] = df2[i,33+j]
+    if (j%%2==1){
+      middle_fix_df2$base_val[counter] = df2$second_val[i] / df2$secondMult[i]
+      middle_fix_df2$mult_val[counter] = df2$second_mult[i]
+    }
+    else if (j%%2==0){
+      middle_fix_df2$base_val[counter] = df2$first_val[i] / df2$first_mult[i]
+      middle_fix_df2$mult_val[counter] = df2$first_mult[i]
+    }
+    counter = counter + 1
+  }
+}
+
+# remove 3 outlier values above 8 seconds (max value for cleaned v2 data is below 8 seconds)
+middle_fix_df1 = middle_fix_df1[middle_fix_df1$fix_dur <8, ]
+max(middle_fix_df1$fix_dur)
+
+# flip -ve vals to make positive (how to test if justified?)
+middle_fix_df1$abs_base_val = abs(middle_fix_df1$base_val)
+middle_fix_df2$abs_base_val = abs(middle_fix_df2$base_val)
+
+head(middle_fix_df1)
+```
+
+## Plot
+### Middle RT histograms
+
+```{r}
+
+
+hist(middle_fix_df1$fix_dur, breaks = 30,
+     freq = FALSE,
+     main = "Study 1: Group Middle Fixations",
+     xlab = "Fixation Duration")
+
+hist(middle_fix_df2$fix_dur, breaks = 30,
+     freq = FALSE,
+     main = "Study 2: Group Middle Fixations",
+     xlab = "Fixation Duration")
+
+
+```
+
+### Middle Group RTs Fitted to Weibull
+
+```{r}
+# parameters are shift, scale, shape
+
+# Study 1
+fit <- optim(c(1,1.8,mean(middle_fix_df1$fix_dur)),      # mean rt is a good starting point for scale
+             weiblnL, rt=middle_fix_df1$fix_dur)
+
+hist(middle_fix_df1$fix_dur, probability = TRUE, breaks=40)
+lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
+fit
+
+# Study 2
+fit <- optim(c(1,1.8,mean(middle_fix_df2$fix_dur)),      # mean rt is a good starting point for scale
+             weiblnL, rt=middle_fix_df2$fix_dur)
+
+hist(middle_fix_df2$fix_dur, probability = TRUE, breaks=40)
+lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
+fit
+```
+
+
+### Middle Individual RTs Fitted to Weibull
+
+```{r}
+
+# First, how many fixations/subject
+library(data.table)
+dt <- data.table(middle_fix_df1)
+dt[,list(count=length(fix_dur), 
+         mean=mean(fix_dur),
+         sd=sd(fix_dur)),
+   by=subject]
+
+# For Study 1 can see that subjects 7/3 has few middle fixations (21)
+# For Study 2 can see that subjects 139/10 and 141/1 have very few middle fixations
+
+# Remove these subjects
+middle_fix_df1 = middle_fix_df1[middle_fix_df1$subject != 7,]
+middle_fix_df2 = middle_fix_df2[middle_fix_df2$subject != 139,]
+middle_fix_df2 = middle_fix_df2[middle_fix_df2$subject != 141,]
+
+# Fit weibull to all subjects
+# Make a matrix of times
+
+# Study 1 or 2?
+df_in = middle_fix_df1
+
+# Find the max number of fixations for an individual
+dt <- data.table(df_in)
+n_cols = max(dt[,list(max_fix=max(length(fix_dur))),
+                by=subject]$max_fix)
+
+# Create empty matrix 
+mid_mat = matrix(nrow =length(unique(df_in$subject)), ncol = n_cols)
+
+# Vector with subject numbers
+subjects = unique(df_in$subject)
+
+# Fill matrix with RTs
+for (i in 1:length(unique(df_in$subject))){
+  x = length(df_in$fix_dur[df_in$subject == subjects[i]])
+  mid_mat[i,1:x] = df_in$fix_dur[df_in$subject == subjects[i]]
+}
+
+# convert to ms from s
+mid_mat = mid_mat* 1000
+
+```
+
+
+
+# Bin Values
+
+```{r}
+# Bin by count
+
+
+```
+
+
+
+# Weibull at each value - interpret the parameter changes
+
+```{r}
+
+
+```
+
+
+# EZ-DDM at each value - intepret parameter changes
+
+```{r}
+
+
+```
+
