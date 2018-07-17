@@ -376,45 +376,60 @@ Prediction can be **improved** by adusting each individual's prediction $y_{i}$
 
 
 
+# Perceptual Decision-Making
+
+#### P(state of the world | sensory data)
+
+In the perceptual domain we have a good idea what the **evidence** is.
+
+Therefore we can manipulate the **quality** of the **evidence** in perceptual choice.
+
+---
+
+#### Key Points
+
+* **External Noise**: sensory information (the world) is noisy
+* **Internal Noise**: processing is performed by a noisy brain
+* **Sampling**/Integrating across space and time (typically)
+* **Combine** sensory information with stored knowledge/prior beliefs (often)
+
+---
+
+#### Log Likelihood Ratio
+
+$$
+\sum_{t=1}^{T} ln[P(x_t|S_1)] - ln[P(x_t|S_2)]
+$$
+
+Assumption is that $P(x_t|S_1)$ and $P(x_t|S_2)$ are **independent** (i.e. samples are independent).
+
+This equation functions like an **accumulator**!
+
+---
+
+#### Difference of Gaussians
+
+$\mu_{difference} = \mu_{signal} - \mu_{noise}$
+
+$\sigma_{difference} = \sqrt{\sigma^2_{signal}+\sigma^2_{noise}}$
+
+NOTE: This only works with a single noise and signal distribution
+
+---
+
+#### Direct Evaluation
+
+This works with multiple options (signals)
 
 
-**GORDON**
-
-Agent Based Models
-
-Exercise on Agent Based Models
-
-Decision-by-sampling model of judgement and choice
 
 
 
-**KLAUS**
-
-Measurement models for visual working memory
-
-Mixture Model & Other model
-
-Bayesian Hierarchical Models
 
 
-
-**CHRIS**
-
-Fitting DDMs in Jags
+ 
 
 
-
-BOB
-
-CHRIS
-
-CAS
-
-KLAUS
-
-GORDON
-
-ARNDT
 
 
 

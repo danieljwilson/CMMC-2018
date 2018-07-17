@@ -1,0 +1,372 @@
+---
+title: "perceptual decisions: Cas Ludwig"
+output: html_notebook
+---
+
+## Exercise 01: Simulation
+
+Simulate pairs of responses: one from the *preferred* direction (signal) distribution, one from the *non-preferred* direction (noise) distribution.
+
+If signal > noise, response is correct.
+
+```{r}
+
+noise = 1
+n= 10000
+separation = seq(0,7,0.5)
+
+results = NULL
+counter = 1
+
+for (i in separation){
+  correct = rnorm(n, mean = 0 + i, sd = noise)
+  incorrect = rnorm(n, mean = 0, sd = noise)
+  
+  results$PC[counter] = mean(correct - incorrect >0)
+  
+  results$noise[counter] = noise
+  results$separation[counter] = i
+  
+  counter = counter +1
+}
+
+# Plot
+plot(results$separation, results$PC,
+     main=paste0("Accuracy at noise level ", noise),
+     xlab = "Separation",
+     ylab = "Proportion correct")
+lines(results$separation, results$PC)
+
+```
+
+*MAX Rule*: whether (signal - noise > 0)...
+
+## Direct Evaluation
+
+*Cannot be directly evaluated - need to be integreated numerically.*
+
+- Integrates across all possible noise responses and evaluate the probability that the signal response was greater. 
+
+- This results in a more complex expression to integrate, but the result should be identical to the difference distribution. 
+- The advantage of this approach is that it scales up for designs with more than two alternatives.
+
+```{r}
+# First, set up the function to integrate
+TwoAFCmax<-function(x,mean1=0,mean2=0,sd1=1,sd2=1){
+  y=dnorm(x,mean=mean1,sd=sd1)*(1-pnorm(x,mean=mean2,sd=sd2))
+  return(y)
+}
+
+# This function can only be numerically integrated. You can be more or less
+# sophisticated about this. I'm using the built-in 'integrate'
+# function. 
+
+mu_noise<-0 # noise distribution centred on 0
+mu_signal<-seq(0,6,0.5) # signal distribution centred on 1
+
+sigma_noise<-1
+sigma_signal<-1
+
+lowlim<-mu_noise-5*sigma_noise # Set some sensible integration limits
+uplim<-mu_signal+5*sigma_signal # Assumes: mu_noise <= mu_signal
+
+acc = NULL
+count = 1
+
+for (i in 1:length(mu_signal)){
+  PC<-integrate(TwoAFCmax,
+             lowlim,
+             uplim,
+             mean1=mu_noise,
+             mean2=mu_signal[i],
+             sd1=sigma_noise,
+             sd2=sigma_signal)
+  acc[i] = PC$value
+}
+
+plot(mu_signal, acc)
+
+PCint<-PC$value
+
+# Plot signal and noise distributions
+# cbbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+# SDTdf=data.frame(rep(x,times=2),rep(c("noise","signal"),each=length(x)),c(noise,signal))
+# names(SDTdf)=c("x","distribution","density")
+# h1=ggplot(SDTdf,aes(x=x,y=density,colour=distribution))+
+#   geom_line(size=2)+
+#   xlab('internal response (normalised units)')+
+#   ylab('probability density')+
+#   scale_fill_manual(values=cbbPalette[1:2])+  # To use for fills
+#   theme(panel.background = element_blank())+ # Get rid of the shading
+#   theme(panel.grid.major=element_blank(),panel.grid.minor=element_blank())+ # Get rid of the grid lines
+#   theme(axis.text.x  = element_text(size=12))+ # Change font size and angle on the x-axis
+#   theme(axis.text.y = element_text(size=12))+ # Make font size the same on the y-axis
+#   theme(axis.title.x=element_text(size=18))+ # Make font of the axes labels bigger
+#   theme(axis.title.y=element_text(size=18))
+# print(h1)
+# 
+# # Separately, show the resulting point on the psychometric function
+# plot(mu_signal-mu_noise,PCdiff,xlim=c(0,2),ylim=c(0.5,1),xlab = "signal",
+# ylab = "PC")
+
+
+```
+
+## TOURNAMENT
+
+- Develop a mechanistic model of the psychometric function
+- Fit model to behavioural data using MLE or use Bayes if you like :-)
+- Fit data on a training set
+- Outcome metric: predictive generalisation to test set (i.e. likelihood of the “un-seen” test data)
+- It may be instructive to compute other metrics for model selection (e.g. AIC, BIC)
+
+#### Use Direct Evaluation
+
+For a given target response u = Xsignal, compute probability that all (M-1) distractor response are less than u.
+
+- Fit model to each participant
+- Sum deviance measures across participants to get overall model fit
+
+```{r}
+
+pnorm(u, mean = u_noise, sd = sigma_noise) # to power of noise stim
+
+dnorm(u, mean = u_signal, sd = sigma_signal)
+
+df = read.csv("resources/TrainData.csv")
+
+
+# 7 levels of contrast
+# -2 * sum log likelihood (gives error metric to minimize)
+
+# Try logistic at TRANSDUCER LEVEL
+# Naka-Rushton equation
+
+
+```
+
+
+### Improving the model
+
+- Non-linear transducer (e.g. log, power, Naka-Rushton)
+- Signal-dependent noise (e.g. sig^2 = 1 + k*u)
+- Mixture of visually guided resopnses and stimulus-independent responses ("finger errors")
+
+```{r}
+## Observer model - skeleton code with a suggested structure
+
+rm(list=ls())
+
+library(stats)
+library(plyr)
+library(Hmisc)
+
+
+# PC_MAFC computes the predicted proportion correct for a single signal level. 
+PC_MAFC<-function(mu_signal,mu_noise=0,sigma=1){
+  # Define the function to be integrated
+  MAFCmax<-function(x,mean1=0,mean2=0,sd1=1,sd2=1,M=2) dnorm(x,mean=mean1,sd=sd1)*(pnorm(x,mean=mean2,sd=sd2))^(M-1)
+  
+  Mstar<-4
+  # This function can only be numerically integrated. You can be more or less
+  # sophisticated about this. I'm using the built-in 'integrate'
+  # function.
+  lowlim<-mu_noise-5*sigma # Set some sensible integration limits
+  uplim<-mu_signal+5*sigma # Assumes: mu_noise <= mu_signal
+  
+  PC<-integrate(MAFCmax,
+               lowlim,
+               uplim,
+               mean1=mu_signal,
+               mean2=mu_noise,
+               sd1=sigma,
+               sd2=sigma,
+               M=Mstar)
+  PC_MAFCval<-PC$value
+  return(PC_MAFCval)
+}
+
+# Write the error function that returns the deviance for a single subject 
+MyModel<-function(parms,PFdata){
+  beta<-parms[1]
+  lambda<-parms[2]
+  sdnoise<-1
+  deviance = 0
+  
+  # pass contrast levels through the transducer
+  for (level in 1:length(PFdata$rootEnergy)){
+#    signal= PFdata$rootEnergy[level] * beta        
+#    signal= log(PFdata$rootEnergy[level]) * beta 
+    signal= (PFdata$rootEnergy[level] * beta)^lambda
+    # For each signal level, compute the predicted PC (hint: check the apply family)
+    PC = dbinom(PFdata$Ncorrect, PFdata$Ntrials, PC_MAFC(signal, mu_noise=0, sigma=1))
+    # Once you have your predictions, compute the log-likelihoods and the Deviance
+    
+    deviance = deviance + sum(log(PC))
+  }
+  
+  MyDeviance = -2 * deviance
+  
+  return(MyDeviance)
+}
+
+# Load the data file and turn Participant into a factor
+
+PFdata = read.csv("resources/TrainData.csv")
+PFdata$Participant = factor(PFdata$Participant)
+
+# One method is to use a for-loop. On each iteration, you select data from one participant and then call optim(ize) with 'MyModel' as the function to be minimised.
+
+parms = c(1,0.9)
+
+fit3 = matrix(nrow = 8, ncol = 6)
+colnames(fit3) <- c('subject', 'deviance', 'beta_est', 1, 2, 3)
+
+for (i in 1:length(unique(PFdata$Participant))){
+  dat = PFdata[PFdata$Participant==i,]
+  
+  output = optim(par = parms, fn = MyModel, PFdata = dat)
+  
+  fit3[i,1] = i
+  fit3[i,2] = output$value
+  fit3[i,3] = output$par[1]
+  fit3[i,4] = output$par[2]
+}
+
+
+# Another method is to create a separate function that takes in a dataframe and calls optim(ize). You could then use this function in an apply-like statement to loop through the participants. If you have do not have a firm grasp on what these apply functions do, I suggest you stick with a for-loop.
+
+# Try to do the fitting and end up with all the model parameters in a 8 x K data frame.
+
+# Plot the results: observed data and model predictions superimposed. Do this separately for each subject, so you can see the quality of your fits.
+fit = fit3
+par(c(2,2))
+
+for (i in 1:8){
+  dat = PFdata[PFdata$Participant==i,]
+
+  y_act = dat$Ncorrect/dat$Ntrials
+  x = dat$rootEnergy
+  
+  xs = seq(0.1,max(dat$rootEnergy)+0.2,0.01)
+  #y_est = xs*fit[i,3]
+  #y_est = log(xs)*fit[i,3]
+  y_est = (xs*fit[i,3])^fit[i,4]
+  
+  y_est_p = lapply(y_est, FUN = PC_MAFC)
+  
+  #actual data  
+  plot(x,y_act,
+       main = paste0('Subject ',i, ' || Beta = ', fit[i,3]),
+       ylab = 'Proportion correct',
+       xlab = 'Root energy')
+  #estimated data
+  lines(xs,y_est_p,
+        col="red")
+}
+
+```
+
+### ALT FIT
+
+```{r}
+
+# PC_MAFC computes the predicted proportion correct for a single signal level. 
+PC_MAFC<-function(mu_signal,mu_noise=0,sigma=1){
+  # Define the function to be integrated
+  MAFCmax<-function(x,mean1=0,mean2=0,sd1=1,sd2=1,M=2) dnorm(x,mean=mean1,sd=sd1)*(pnorm(x,mean=mean2,sd=sd2))^(M-1)
+  
+  Mstar<-4
+  # This function can only be numerically integrated. You can be more or less
+  # sophisticated about this. I'm using the built-in 'integrate'
+  # function.
+  lowlim<-mu_noise-5*sigma # Set some sensible integration limits
+  uplim<-mu_signal+5*sigma # Assumes: mu_noise <= mu_signal
+  
+  PC<-integrate(MAFCmax,
+               lowlim,
+               uplim,
+               mean1=mu_signal,
+               mean2=mu_noise,
+               sd1=sigma,
+               sd2=sigma,
+               M=Mstar)
+  PC_MAFCval<-PC$value
+  return(PC_MAFCval)
+}
+
+# Write the error function that returns the deviance for a single subject 
+MyModel<-function(parms,PFdata){
+  beta<-parms[1]
+  sdnoise<-1
+  deviance = 0
+  
+  # pass contrast levels through the transducer
+  for (level in 1:length(PFdata$rootEnergy)){
+    signal= PFdata$rootEnergy[level] * beta        
+    # For each signal level, compute the predicted PC (hint: check the apply family)
+    PC = dbinom(PFdata$Ncorrect, PFdata$Ntrials, PC_MAFC(signal, mu_noise=0, sigma=1))
+    # Once you have your predictions, compute the log-likelihoods and the Deviance
+    
+    deviance = deviance + sum(log(PC))
+  }
+  
+  MyDeviance = -2 * deviance
+  
+  return(MyDeviance)
+}
+
+# Load the data file and turn Participant into a factor
+
+PFdata = read.csv("resources/TrainData.csv")
+PFdata$Participant = factor(PFdata$Participant)
+
+# One method is to use a for-loop. On each iteration, you select data from one participant and then call optim(ize) with 'MyModel' as the function to be minimised.
+
+parms = c(1)
+
+fit = matrix(nrow = 8, ncol = 6)
+colnames(fit) <- c('subject', 'deviance', 'beta_est', 1, 2, 3)
+
+for (i in 1:length(unique(PFdata$Participant))){
+  dat = PFdata[PFdata$Participant==i,]
+  
+  output = optim(par = parms, fn = MyModel, PFdata = dat)
+  
+  fit[i,1] = i
+  fit[i,2] = output$value
+  fit[i,3] = output$par
+}
+
+
+# Another method is to create a separate function that takes in a dataframe and calls optim(ize). You could then use this function in an apply-like statement to loop through the participants. If you have do not have a firm grasp on what these apply functions do, I suggest you stick with a for-loop.
+
+# Try to do the fitting and end up with all the model parameters in a 8 x K data frame.
+
+# Plot the results: observed data and model predictions superimposed. Do this separately for each subject, so you can see the quality of your fits.
+par(c(2,2))
+
+for (i in 1:8){
+  dat = PFdata[PFdata$Participant==i,]
+
+  y_act = dat$Ncorrect/dat$Ntrials
+  x = dat$rootEnergy
+  
+  xs = seq(0,max(dat$rootEnergy)+0.2,0.01)
+  y_est = xs*fit[i,3]
+  
+  y_est_p = lapply(y_est, FUN = PC_MAFC)
+  
+  #actual data  
+  plot(x,y_act,
+       main = paste0('Subject ',i, ' || Beta = ', fit[i,3]),
+       ylab = 'Proportion correct',
+       xlab = 'Root energy')
+  #estimated data
+  lines(xs,y_est_p,
+        col="red")
+}
+
+
+```
+

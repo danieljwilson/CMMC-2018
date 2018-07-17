@@ -98,6 +98,86 @@ for (i in 1:length(mid_mat[,1])) {
 
 ```{r}
 
+library(rtdists)
+# create numeric response variable where 1 is an error and 2 a correct response: 
+middle_fix_df1$corr = 2
+
+# select data from participant 1
+p1 <- middle_fix_df1[middle_fix_df1$subject == 1, ] 
+prop.table(table(p1$corr))
+
+ll_lba <- function(pars, rt) {
+  d <- dlba_norm(rt = rt,    # was dLBA with response = response,
+            A = pars["A"], 
+            b = pars["A"]+pars["b"], 
+            t0 = pars["t0"], 
+            mean_v = pars["mean_v"], 
+            sd_v = pars["sv"]
+            )
+  if (any(d == 0)) return(1e6)
+  else return(-sum(log(d)))
+}
+
+start <- c(runif(2, 0.5, 3), runif(2, 0, 0.2), runif(1))
+names(start) <- c("A", "mean_v", "b", "t0", "sv")
+
+p1_norm <- nlminb(start, ll_lba, lower = c(0, -Inf, 0, 0, 0), 
+                   rt=p1$fix_dur)
+
+# quantiles:
+q <- c(0.1, 0.3, 0.5, 0.7, 0.9)
+
+## observed data (correcte/incorrect quantiles):
+(p1_q <- quantile(p1$fix_dur, probs = q))
+
+# predicted error rate  
+
+plba_norm(rt, A, b, t0, mean_v, sd_v, posdrift = TRUE, robust = FALSE)
+pLBA(rt, response, A, b, t0, ..., st0 = 0, distribution = c("norm", "gamma",
+"frechet", "lnorm"), args.dist = list(), silent = FALSE)
+
+(pred_prop_correct_lba <- plba_norm(Inf,
+                               A = p1_norm$par["A"], 
+                               b = p1_norm$par["A"]+p1_norm$par["b"], 
+                               t0 = p1_norm$par["t0"], 
+                               mean_v = p1_norm$par["mean_v"], 
+                               sd_v = c(1, p1_norm$par["sv"])))
+
+(pred_correct_lba <- qLBA(q*pred_prop_correct_lba, response = 2, 
+                          A = p1_norm$par["A"], 
+                          b = p1_norm$par["A"]+p1_norm$par["b"], 
+                          t0 = p1_norm$par["t0"], 
+                          mean_v = c(p1_norm$par["v1"], p1_norm$par["v2"]), 
+                          sd_v = c(1, p1_norm$par["sv"])))
+
+(pred_error_lba <- qLBA(q*(1-pred_prop_correct_lba), response = 1, 
+                        A = p1_norm$par["A"], 
+                        b = p1_norm$par["A"]+p1_norm$par["b"], 
+                        t0 = p1_norm$par["t0"], 
+                        mean_v = c(p1_norm$par["v1"], p1_norm$par["v2"]), 
+                        sd_v = c(1, p1_norm$par["sv"])))
+
+### plot predictions
+
+#par(mfrow=c(1,2), cex=1.2)
+plot(p1_q, c(0.1, 0.3, 0.5, 0.7, 0.9), 
+     pch = 2, 
+     ylim=c(0, 1), xlim = c(0.3, 1.7), 
+     ylab = "Cumulative Probability", 
+     xlab = "Response Time (sec)", 
+     main = "LBA")
+
+points(p1_q_e, q*prop.table(table(p1$corr))[1], pch = 2)
+lines(pred_correct_lba, q*pred_prop_correct_lba, type = "b")
+lines(pred_error_lba, q*(1-pred_prop_correct_lba), type = "b")
+
+legend("right", legend = c("data", "predictions"), pch = c(2, 1), lty = c(0, 1))
+```
+
+### ALT LBA
+
+```{r}
+
 LBAnL <- function(theta, rt){
   
   # Start point varies from trial to trial in the interval [0, A] (uniform distribution).
@@ -142,7 +222,6 @@ fit <- optim(c(1,1.8,mean(mid_rts)),      # mean rt is a good starting point for
 hist(mid_rts, probability = TRUE, breaks=40)
 lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
 fit
-
 
 ```
 
