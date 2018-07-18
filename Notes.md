@@ -1,5 +1,3 @@
-
-
 # PROGRAMMING
 
 ### SOURCING
@@ -423,7 +421,27 @@ This works with multiple options (signals)
 
 
 
+# Connectionist Models
 
+#### Symbolic AI
+
+Cut the world up into **objects** and **actions**.
+
+We can name them (called symbols), and create rules about how they go together.
+
+---
+
+#### Perceptron
+
+**Limitation**: can only classify linearly separable sets. Implication is that it cannot represent **XOR**.
+
+---
+
+### Gradient Descent
+
+*  Which way is down?
+* How big a step to take?
+* Goal: Lowest spot on error surface
 
 
 

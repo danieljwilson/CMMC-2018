@@ -1,0 +1,76 @@
+---
+title: "Connectionist Models"
+output: html_notebook
+---
+
+
+## Restricted Boltzmann Machine
+
+```{r}
+N_items = 20
+N_inputs = 10;
+N_outputs = N_inputs;
+Bias_node_val = 1;   #not used here
+Learning_rate = 0.1;
+N_epochs = 1000;
+squash = function(x){
+    return (1/(1+exp(-x)))
+  }
+# Generated binary data for N_items, each item is N_inputs long
+True_input_mat = matrix(round(runif(N_inputs*N_items)), N_items);
+
+# Generate initial wt_matrix, wts randomly picked between -1 and 1
+wt_mat = matrix(runif(N_inputs*N_outputs, -1, 1), N_outputs, N_inputs)
+
+# the network will learn for 1000 epochs
+for (epoch in 1:N_epochs ){
+  
+# feed True_input through the weights to output
+  output_mat = True_input_mat %*% wt_mat;
+  
+# squash it between 0 and 1
+  squashed_output = squash(output_mat);
+  
+# these outputs are going to be used as probabilities to make the node 1
+  prob_hiddens = squashed_output;
+  
+# for each parameter, decide via its probability whether it will be a 1 or a 0.  
+  Gibbs_hidden_mat = matrix(rbinom(length(prob_hiddens), 1, prob_hiddens), N_items, N_inputs);
+  
+# Now feed these hidden values back to the input (visible) layer.  Remember that you have
+# use the transpose of the wt matrix. This will result in a "reconstructed" binary vector 
+# that will look more and more like the  True_input_vector
+  Reconstructed_input_probs = squash(Gibbs_hidden_mat %*% t(wt_mat)) 
+  Reconstructed_input_mat = matrix(rbinom(length(Reconstructed_input_probs),
+                                          1, Reconstructed_input_probs), N_items, N_inputs)
+  
+# We then feed the Reconstructed_input forward to produce a Reconstructed_hiddens.  We do
+# exactly the same thing as in the first True_input to the true hiddens.  Note we now use
+# wt_mat, not the transpose, because we are moving "forward".
+  Reconstructed_output_mat = Reconstructed_input_mat %*% wt_mat;
+  squashed_Reconstructed_output = squash(Reconstructed_output_mat) 
+  prob_Reconstructed_hiddens = squashed_Reconstructed_output;
+  Gibbs_Reconstructed_hidden_mat = matrix(rbinom(length(prob_Reconstructed_hiddens), 
+                                                 1, prob_Reconstructed_hiddens), 
+                                                 N_items, N_inputs);
+  # For each pattern we change the weights by Contrastive Divergence
+  # We compute for all i,j  
+  # Delta_positive = true_in_i * Gibbs_hid_j
+  # Delta_negative = reconstructed_in_i * Gibbs_reconstructed_hid_j
+  
+  for (i in 1:N_items){
+    input_pat = True_input_mat[i,]
+    Gibbs_hidden_pat = Gibbs_hidden_mat[i,]
+    Reconstructed_input_pat = Reconstructed_input_mat[i,]
+    Gibbs_Reconstructed_hidden_pat = Gibbs_Reconstructed_hidden_mat[i,]
+    
+    Delta_positive = input_pat %o% Gibbs_hidden_pat;
+    Delta_negative = Reconstructed_input_pat %o% Gibbs_Reconstructed_hidden_pat;
+ 
+  # This is the amount that we change all wts.    
+    wt_delta = Learning_rate*(Delta_positive - Delta_negative)
+    wt_mat = wt_mat + wt_delta;
+  }
+}
+
+```
