@@ -445,7 +445,28 @@ We can name them (called symbols), and create rules about how they go together.
 
 
 
- 
+ # Response Time Models
+
+#### Speeded Choice Tasks
+
+##### Care about:
+
+* distribution of response times
+* propoertion of correct and incorrect responses
+
+---
+
+
+
+**NOTE**
+
+- Differences in caution and non-decision time might be **model dependent**.
+- Drift is usually stable
+- Solution: Fit multiple models and see if they have variation in parameters
+
+
+
+
 
 
 

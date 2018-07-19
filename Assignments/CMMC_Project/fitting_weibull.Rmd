@@ -3,9 +3,13 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-## FITTING WEIBULL
+## FITTING WEIBULL: GROUP LEVEL
 
 ```{r}
+
+# Clean up if necessary
+rm(list=ls())
+
 ## Maximum likelihood estimation of some data
 
 fixations = read.csv("data/study_1/fixations.csv")
@@ -37,223 +41,17 @@ lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), 
 fit
 ```
 
-# Fit individuals
-
-```{r}
-## Maximum likelihood estimation of some data
-
-fixations = read.csv("data/study_1/fixations.csv")
-# pull out middle fixations
-
-subjects = unique(fixations$parcode)
-
-# pull out middle fixations
-for (i in subjects){
-  mid_rt[i] = fixations$fix_time[fixations$fix_num>1 & fixations$rev_fix_num>1 & fixations$parcode == i]
-}
-
-
-weiblnL <- function(theta, rt){
-  
-  shift <- theta[1]
-  shape <- theta[2]
-  scale <- theta[3]
-  
-  if (shift>=min(rt) | any(theta<.Machine$double.neg.eps) ){ # a hack to avoid NaNs (won't work with gradient descent)
-    return(1000000)
-  } 
-  else {
-    return(
-      -sum(dweibull(rt-shift,scale=scale,shape=shape,log=TRUE))
-    )
-  }
-}
-
-
-# init subject fits
-subject_fits = NULL
-
-# 3x3 plot
-par(mfrow=c(3,3))
-
-for (i in 1:length(mid_mat[,1])) {
-  rts = mid_mat[i,]
-  rts = rts[!is.na(rts)]
-
-  # parameters are shift, scale, shape
-  fit <- optim(c(1,1.8,mean(rts)),      # mean rt is a good starting point for scale
-               weiblnL, rt=rts)
-  
-  hist(rts, probability = TRUE, breaks=40,
-       main = paste0("Subject ", i, " middle fixations"))
-  lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
-  
-  subject_fits[[i]] = fit
-}
-
-```
-
-
-## FIT SUBJECT MID RT USING LBA
-
-```{r}
-
-library(rtdists)
-# create numeric response variable where 1 is an error and 2 a correct response: 
-middle_fix_df1$corr = 2
-
-# select data from participant 1
-p1 <- middle_fix_df1[middle_fix_df1$subject == 1, ] 
-prop.table(table(p1$corr))
-
-ll_lba <- function(pars, rt) {
-  d <- dlba_norm(rt = rt,    # was dLBA with response = response,
-            A = pars["A"], 
-            b = pars["A"]+pars["b"], 
-            t0 = pars["t0"], 
-            mean_v = pars["mean_v"], 
-            sd_v = pars["sv"]
-            )
-  if (any(d == 0)) return(1e6)
-  else return(-sum(log(d)))
-}
-
-start <- c(runif(2, 0.5, 3), runif(2, 0, 0.2), runif(1))
-names(start) <- c("A", "mean_v", "b", "t0", "sv")
-
-p1_norm <- nlminb(start, ll_lba, lower = c(0, -Inf, 0, 0, 0), 
-                   rt=p1$fix_dur)
-
-# quantiles:
-q <- c(0.1, 0.3, 0.5, 0.7, 0.9)
-
-## observed data (correcte/incorrect quantiles):
-(p1_q <- quantile(p1$fix_dur, probs = q))
-
-# predicted error rate  
-
-plba_norm(rt, A, b, t0, mean_v, sd_v, posdrift = TRUE, robust = FALSE)
-pLBA(rt, response, A, b, t0, ..., st0 = 0, distribution = c("norm", "gamma",
-"frechet", "lnorm"), args.dist = list(), silent = FALSE)
-
-(pred_prop_correct_lba <- plba_norm(Inf,
-                               A = p1_norm$par["A"], 
-                               b = p1_norm$par["A"]+p1_norm$par["b"], 
-                               t0 = p1_norm$par["t0"], 
-                               mean_v = p1_norm$par["mean_v"], 
-                               sd_v = c(1, p1_norm$par["sv"])))
-
-(pred_correct_lba <- qLBA(q*pred_prop_correct_lba, response = 2, 
-                          A = p1_norm$par["A"], 
-                          b = p1_norm$par["A"]+p1_norm$par["b"], 
-                          t0 = p1_norm$par["t0"], 
-                          mean_v = c(p1_norm$par["v1"], p1_norm$par["v2"]), 
-                          sd_v = c(1, p1_norm$par["sv"])))
-
-(pred_error_lba <- qLBA(q*(1-pred_prop_correct_lba), response = 1, 
-                        A = p1_norm$par["A"], 
-                        b = p1_norm$par["A"]+p1_norm$par["b"], 
-                        t0 = p1_norm$par["t0"], 
-                        mean_v = c(p1_norm$par["v1"], p1_norm$par["v2"]), 
-                        sd_v = c(1, p1_norm$par["sv"])))
-
-### plot predictions
-
-#par(mfrow=c(1,2), cex=1.2)
-plot(p1_q, c(0.1, 0.3, 0.5, 0.7, 0.9), 
-     pch = 2, 
-     ylim=c(0, 1), xlim = c(0.3, 1.7), 
-     ylab = "Cumulative Probability", 
-     xlab = "Response Time (sec)", 
-     main = "LBA")
-
-points(p1_q_e, q*prop.table(table(p1$corr))[1], pch = 2)
-lines(pred_correct_lba, q*pred_prop_correct_lba, type = "b")
-lines(pred_error_lba, q*(1-pred_prop_correct_lba), type = "b")
-
-legend("right", legend = c("data", "predictions"), pch = c(2, 1), lty = c(0, 1))
-```
-
-### ALT LBA
-
-```{r}
-
-LBAnL <- function(theta, rt){
-  
-  # Start point varies from trial to trial in the interval [0, A] (uniform distribution).
-  # Average amount of evidence before evidence accumulation across trials is A/2.
-  
-  A <- theta[1] 
-  
-  # response threshold. (b - A/2) is a measure of "response caution"
-  b <- theta[2] 
-  
-  # non-decision time or response time constant (in seconds). Lower bound for the
-  # duration of all non-decisional processes (encoding and response execution).
-  t0 <- theta[3]
-  
-  # variability of non-decision time, such that t0 is uniformly distributed between
-  # t0 and t0 + st0. Default is 0. Can be trialwise, and will be recycled to length
-  # of rt.
-  st0 <- theta[4]
-  
-  # character specifying the distribution of the drift rate.
-  # Possible values are c("norm", "gamma", "frechet", "lnorm"), default is "norm".
-  distribution<- theta[5]
-  
-  # 
-    shape <- theta[2]
-  scale <- theta[3]
-  
-  if (shift>=min(rt) | any(theta<.Machine$double.neg.eps) ){ # a hack to avoid NaNs (won't work with gradient descent)
-    return(1000000)
-  } 
-  else {
-    return(
-      -sum(dweibull(rt-shift,scale=scale,shape=shape,log=TRUE))
-    )
-  }
-}
-
-# parameters are shift, scale, shape
-fit <- optim(c(1,1.8,mean(mid_rts)),      # mean rt is a good starting point for scale
-             weiblnL, rt=mid_rts)
-
-hist(mid_rts, probability = TRUE, breaks=40)
-lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
-fit
-
-```
-
-
-### PLOT: SECOND FIXATION TIME VS. VALUE & MULTIPLIER
-```{r}
-df <- v3
-
-ggplot() +
-  geom_smooth(aes(x=secondVal/secondMult, y=`2_fixation`, group = factor(secondMult), colour = factor(secondMult)), df) +
-  #geom_smooth(aes(x=summedVal, y=logRT, colour = "flip"), subset(total_M_clean3, flip==1)) +
-  coord_cartesian(xlim = c(-1, 1))  +
-  #ggtitle("Second Fixation Timing vs Total Value")
-  #geom_point(shape=1) +    # Use hollow circles
-  geom_smooth() + # Add a loess smoothed fit curve with confidence region
-  theme_minimal()+
-  guides(colour=guide_legend("Attribute\nWeight")) +
-  scale_x_continuous(name="Attribute Base Value ($)", seq(-1,1,0.2), limits = c(-1,1))+
-  scale_y_continuous(name = "Attribute Dwell Time (s)") +
-  theme(axis.title.x=element_text(size=14),
-        axis.title.y = element_text(size = 14),
-        legend.title = element_text(size = 10))+
-  theme(legend.position="right")
-
-#Test for SIG
-summary(lm(`2_fixation`~secondVal + secondMult, df))
-```
-
 # ISOLATE INDIVIDUAL MIDDLE FIXATIONS 
 
 ```{r}
-# Extract middle fix by subject
+# Import study data
+# Load Experiment V1
+load("/Users/djw/Documents/pCloud Synced/PhD/PROJECTS/2017_MADE/03_CODE/2017_MADE/Analysis/Data/S_M.Rdata")
+v1 <- S_M
+
+# Load Experiment V3
+load("/Users/djw/Documents/pCloud Synced/PhD/PROJECTS/2017_MADE/03_CODE/2017_MADE/Analysis/Data/v3_clean.Rdata")
+v3 <- v3_clean
 
 # Look at row (starting with 2nd fix):
 df1 <- v1
@@ -268,6 +66,7 @@ for (i in 1:length(df1$Trial)){
 df1 <- df1[df1$num_fixations > 2,]          # leaves 3820 trials
 df2 <- df2[df2$num_fixations > 2,]          # leaves 7406 trials
 
+# check how many middle fixations each subject actually has
 mid_fix_num_1 = sum(df1$num_fixations) - 2*length(df1$Trial)
 mid_fix_num_2 = sum(df2$num_fixations) - 2*length(df2$trial)
 
@@ -346,21 +145,30 @@ hist(middle_fix_df2$fix_dur, breaks = 30,
 ```
 
 ### Middle Group RTs Fitted to Weibull
+NOT WORKING
 
 ```{r}
 # parameters are shift, scale, shape
 
 # Study 1
-fit <- optim(c(1,1.8,mean(middle_fix_df1$fix_dur)),      # mean rt is a good starting point for scale
-             weiblnL, rt=middle_fix_df1$fix_dur)
+
+# convert mid fix durations to ms
+mid_fix_df1_ms = middle_fix_df1$fix_dur*1000
+
+fit <- optim(c(1,1.8,mean(mid_fix_df1_ms)),      # mean rt is a good starting point for scale
+             weiblnL, rt=mid_fix_df1_ms)
 
 hist(middle_fix_df1$fix_dur, probability = TRUE, breaks=40)
 lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
 fit
 
 # Study 2
-fit <- optim(c(1,1.8,mean(middle_fix_df2$fix_dur)),      # mean rt is a good starting point for scale
-             weiblnL, rt=middle_fix_df2$fix_dur)
+
+# convert mid fix durations to ms
+mid_fix_df2_ms = middle_fix_df2$fix_dur*1000
+
+fit <- optim(c(1,1.8,mean(mid_fix_df2_ms)),      # mean rt is a good starting point for scale
+             weiblnL, rt=mid_fix_df2_ms)
 
 hist(middle_fix_df2$fix_dur, probability = TRUE, breaks=40)
 lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
@@ -368,7 +176,7 @@ fit
 ```
 
 
-### Middle Individual RTs Fitted to Weibull
+### Create Middle Fix Matrix by Subject
 
 ```{r}
 
@@ -416,13 +224,132 @@ mid_mat = mid_mat* 1000
 
 ```
 
+# Fit Subjects to WEIBULL and Plot
+
+
+### Fit Weibull to Subjects
+
+```{r}
+# init subject fits
+subject_fits = NULL
+
+# 3x3 plot
+par(mfrow=c(3,3))
+
+for (i in 1:length(mid_mat[,1])) {
+  rts = mid_mat[i,]
+  rts = rts[!is.na(rts)]
+
+  # parameters are shift, scale, shape
+  fit <- optim(c(1,1.8,mean(rts)),      # mean rt is a good starting point for scale
+               weiblnL, rt=rts)
+  
+  hist(rts, probability = TRUE, breaks=40,
+       main = paste0("Subject ", i, " middle fixations"))
+  lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
+  
+  subject_fits[[i]] = fit
+}
+
+```
+
+
+
+### FIT SUBJECT MID RT USING LBA
+
+```{r}
+
+library(rtdists)
+
+# Example
+x = rlba_norm(100, A=A, b=b, t0 = t0, mean_v=v, sd_v=sd_v)
+
+curve(dlba_norm(x, A=A, b=b, t0=t0, mean_v = v, sd_v = sd_v), ylim = c(0, 4),
+      xlim=c(0,3), main="Density/PDF of LBA versions", ylab="density", xlab="response time")
+
+# Likelihood function
+lba_l <- function(par, rt){
+  
+  A <- par[1]
+  print(A)
+  b <- par[2]
+  print(b)
+  t0 <- par[3]
+  print(t0)
+  v <- par[4]
+  sd_v <- par[5]
+  
+  if (b<=A | any(theta<.Machine$double.neg.eps) ){ # a hack to avoid NaNs (won't work with gradient descent)
+   return(1000000)
+  } 
+  else {
+    return(
+      -sum(log(dlba_norm(rt, A=A, b=b, t0=t0, mean_v = v, sd_v = sd_v)))
+    )
+  }
+}
+
+remove(x)
+
+
+curve(dlba_norm(x, A=A, b=b, t0=t0, mean_v = 1.0, sd_v = 0.5), main="Density/PDF of LBA versions", ylab="density", xlab="response time")  
+# parameters are:
+A <- 0.2    # start point interval or evidence in accumulator before beginning of decision process. Start point varies from trial to trial in the interval [0, A] (uniform distribution). Average amount of evidence before evidence accumulation across trials is A/2.
+b <- 0.5    # response threshold. (b - A/2) is a measure of "response caution".
+t0 <- 0.3   # non-decision time or response time constant (in seconds). Lower bound for the duration of all non-decisional processes (encoding and response execution).
+v= 1.0      # mean and standard deviation of normal distribution for drift rate (norm). See Normal
+sd_v = 0.5
+
+# convert rts to seconds
+rt_s = mid_rts/1000
+parameters = c(A, b, t0, v, sd_v)
+
+fit <- optim(par = c(A,b,t0,v,sd_v),      
+             lba_l, rt=rt_s)
+
+
+x = rlba_norm(100, A=A, b=b, t0=t0, mean_v=v, sd_v=sd_v)
+
+# PLOT
+hist(rt_s, probability = TRUE, breaks=40)
+
+x = rlba_norm(1000, A=fit$par[1], b=fit$par[2], t0=fit$par[3], mean_v = fit$par[4], sd_v = fit$par[5])
+curve(dlba_norm(x, A=fit$par[1], b=fit$par[2], t0=fit$par[3], mean_v = fit$par[4], sd_v = fit$par[5]),
+      main="Density/PDF of LBA versions", ylab="density", xlab="response time")
+remove(x)
+
+
+### plot predictions
+
+#par(mfrow=c(1,2), cex=1.2)
+plot(p1_q, c(0.1, 0.3, 0.5, 0.7, 0.9), 
+     pch = 2, 
+     ylim=c(0, 1), xlim = c(0.3, 1.7), 
+     ylab = "Cumulative Probability", 
+     xlab = "Response Time (sec)", 
+     main = "LBA")
+
+points(p1_q_e, q*prop.table(table(p1$corr))[1], pch = 2)
+lines(pred_correct_lba, q*pred_prop_correct_lba, type = "b")
+lines(pred_error_lba, q*(1-pred_prop_correct_lba), type = "b")
+
+legend("right", legend = c("data", "predictions"), pch = c(2, 1), lty = c(0, 1))
+
+
+```
+
 
 
 # Bin Values
 
 ```{r}
 # Bin by count
+head(middle_fix_df1)
+library(lambda.tools)
+x <- seq(-2, 2, by=.1)  
+quantize(x)
 
+quantize(x, bins=-1.5:1.5)
 
 ```
 
@@ -436,10 +363,96 @@ mid_mat = mid_mat* 1000
 ```
 
 
+### ALT LBA
+
+```{r}
+
+library(rtdists)
+
+
+LBAnL <- function(theta, rt){
+  
+  # Start point varies from trial to trial in the interval [0, A] (uniform distribution).
+  # Average amount of evidence before evidence accumulation across trials is A/2.
+  
+  A <- theta[1] 
+  
+  # response threshold. (b - A/2) is a measure of "response caution"
+  b <- theta[2] 
+  
+  # non-decision time or response time constant (in seconds). Lower bound for the
+  # duration of all non-decisional processes (encoding and response execution).
+  t0 <- theta[3]
+  
+  # variability of non-decision time, such that t0 is uniformly distributed between
+  # t0 and t0 + st0. Default is 0. Can be trialwise, and will be recycled to length
+  # of rt.
+  st0 <- theta[4]
+  
+  # character specifying the distribution of the drift rate.
+  # Possible values are c("norm", "gamma", "frechet", "lnorm"), default is "norm".
+  distribution<- theta[5]
+  
+  # 
+    shape <- theta[2]
+  scale <- theta[3]
+  
+  if (shift>=min(rt) | any(theta<.Machine$double.neg.eps) ){ # a hack to avoid NaNs (won't work with gradient descent)
+    return(1000000)
+  } 
+  else {
+    return(
+      -sum(dweibull(rt-shift,scale=scale,shape=shape,log=TRUE))
+    )
+  }
+}
+
+# parameters are shift, scale, shape
+fit <- optim(c(1,1.8,mean(mid_rts)),      # mean rt is a good starting point for scale
+             weiblnL, rt=mid_rts)
+
+hist(mid_rts, probability = TRUE, breaks=40)
+lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
+fit
+
+```
+
+
+### PLOT: SECOND FIXATION TIME VS. VALUE & MULTIPLIER
+```{r}
+df <- v3
+
+ggplot() +
+  geom_smooth(aes(x=secondVal/secondMult, y=`2_fixation`, group = factor(secondMult), colour = factor(secondMult)), df) +
+  #geom_smooth(aes(x=summedVal, y=logRT, colour = "flip"), subset(total_M_clean3, flip==1)) +
+  coord_cartesian(xlim = c(-1, 1))  +
+  #ggtitle("Second Fixation Timing vs Total Value")
+  #geom_point(shape=1) +    # Use hollow circles
+  geom_smooth() + # Add a loess smoothed fit curve with confidence region
+  theme_minimal()+
+  guides(colour=guide_legend("Attribute\nWeight")) +
+  scale_x_continuous(name="Attribute Base Value ($)", seq(-1,1,0.2), limits = c(-1,1))+
+  scale_y_continuous(name = "Attribute Dwell Time (s)") +
+  theme(axis.title.x=element_text(size=14),
+        axis.title.y = element_text(size = 14),
+        legend.title = element_text(size = 10))+
+  theme(legend.position="right")
+
+#Test for SIG
+summary(lm(`2_fixation`~secondVal + secondMult, df))
+```
+
+
+
+
 # EZ-DDM at each value - intepret parameter changes
 
 ```{r}
 
 
 ```
+
+## Make a vector with middle fixations for each subject
+## Make a vector with first fixations for each subject
+
 

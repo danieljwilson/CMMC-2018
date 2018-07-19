@@ -1,0 +1,35 @@
+model{
+	for (i in 1:N){
+		rts[i] ~ dwiener(alpha[conds[i],subjs[i]],tau[conds[i],subjs[i]],Beta,delta[conds[i],subjs[i]])
+	}
+
+	for (t in 1:2){
+		for (s in 1:nsubjs){
+			tau[t,s] ~ dnorm(Tau[t],precTau)T(0,)
+			alpha[t,s] ~ dnorm(Alpha[t],precAlpha)T(0,)
+			delta[t,s] ~ dnorm(Delta[t],precDelta)
+		}
+		# Group parameters
+		Tau[t] ~ dnorm(0.15,100)T(0,)
+		Alpha[t] ~ dnorm(3,2)T(0,)
+		Delta[t] ~ dnorm(0,1)
+	}
+
+	Beta <- 0.5
+	
+	sdTau ~ dunif(0.01,0.05)
+	precTau <- pow(sdTau,-2)
+
+	sdAlpha ~ dunif(0.01,0.5)
+	precAlpha <- pow(sdAlpha,-2) 
+
+	sdDelta ~ dunif(0.01,1)
+	precDelta <- pow(sdDelta,-2)
+	
+	#Collect priors
+	for (t in 1:2){
+		prAlpha[t] ~ dnorm(3,2)T(0,)
+		prDelta[t] ~ dnorm(0,1)
+		prTau[t] ~ dnorm(0.15,100)T(0,)
+	}
+}

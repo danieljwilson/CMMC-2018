@@ -1,0 +1,24 @@
+model{
+	for (i in 1:N){
+		rts[i] ~ dwiener(alpha[subjs[i], conds[i]],tau[subjs[i], conds[i]],beta,delta[subjs[i],conds[i]])  # add subs[i]
+		# alpha = threshold
+		# tau = non-decision time
+		# beta = start point (0.5 = 1/2 of alpha)
+		# delta = drift rate
+	}
+	
+	#---------#
+	# PRIORS  #
+	#---------#
+	
+	for (t in 1:2){
+	  for (s in 1:nsubjs){
+	    delta[s,t] ~ dnorm(0,1)
+		  alpha[s,t] ~ dnorm(3,2)T(0,)     # prior for threshold
+		  tau[s,t] ~ dnorm(0.15,100)T(0,)  # prior for non decision time
+	  }
+	}
+	beta <- 0.5                 # no bias for the response
+
+	# note in this model 's' is set to 1, so 3 instead of .3
+}
