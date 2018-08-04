@@ -11,13 +11,32 @@ output: html_notebook
 nreps <- 1000
 nsamples <- 5000
 
-drift <- 0.15
-s <- 0.1
-a <- 0.1
-non_decision <- 200
-dt <- 0.001
+dt <-     0.001
+s <-      0.1
+
+a <-      0.1       # Threshhold
+
+ndt <-    300       # Non Decision Time
+ndt_var <- 0        # NDT Variance
+
+drift <-  0.15      # Drift rate
+drift_var <- 0      # Drift Variance
+
 switch <- 500
-new.drift <- -0.15
+values = matrix(runif(20, -1,1), ncol=2, nrow=10)
+
+# one value, many trials
+trial_drift = values[,1] * drift + rnorm(length(values[,1]),0,drift_var)
+
+nsamples = 10
+
+cumsum(c(0, rnorm(nsamples*length(trial_drift),trial_drift*dt,sqrt(dt)*s)))
+
+# example
+M <- matrix(1:6, nrow=3, byrow=TRUE)
+M
+t(apply(M, 1, cumsum))
+# add leading row of zeros
 
 latencies <- rep(0,nreps) 
 responses <- rep(0,nreps)
@@ -26,15 +45,16 @@ evidence <- matrix(0, nreps, nsamples+1) # +1 to account for the starting value
 for (i in c(1:nreps)) { 
   # Trial updating
   # Starting Point
-  t0 = t0 + t0_var
+  ndt = ndt + ndt_var
   
   # Drifts
-  drift[1] = drift * vlaue[1] + drift_var
-  drift[2] = drift * value[2] + 
-    
+  trial_drift.1 = values[,1] * drift + rnorm(length(values[,1]),0,drift_var)
+  trial_drift.2 = values[,2] * drift + rnorm(length(values[,1]),0,drift_var)
+  
+  # Evidence Accumulation  
   evidence[i,] <- cumsum(c(0,
-                           rnorm(switch,drift*dt,sqrt(dt)*s),
-                           rnorm(nsamples-switch,new.drift*dt,sqrt(dt)*s)))
+                           rnorm(switch,drift[1]*dt,sqrt(dt)*s),
+                           rnorm(nsamples-switch,drift[2]*dt,sqrt(dt)*s)))
   
   p <-  which(abs(evidence[i,])>a)[1]
   responses[i] <- sign(evidence[i,p])
@@ -50,9 +70,22 @@ hist(latencies[responses==-1])
 ```
 
 ```{r}
+# Function to calculate the threshold crossing time 
+# PDF for one node (node #1). Arguments are as for
+# fptcdf above.
+fptpdf=function(t,A,b,v,sdv) {
+  zs=t*sdv ; zu=t*v ; chiminuszu=b-zu
+  chizu=chiminuszu/zs ; chizumax=(chiminuszu-A)/zs
+  (v*(pnorm(chizu)-pnorm(chizumax)) + 
+    sdv*(dnorm(chizumax)-dnorm(chizu)))/A
+}
+```
+
+
+```{r}
 # playing with rnorm
 a = c(0, 10, 100)
-rnorm(rnorm(a, mean=a, sd=1))
+evidence = rnorm(rnorm(evidence, mean=evidence, sd=1))
 ```
 
 

@@ -15,6 +15,7 @@ rm(list=ls())
 fixations = read.csv("data/study_1/fixations.csv")
 
 mid_rts = fixations$fix_time[fixations$fix_num>1 & fixations$rev_fix_num>1]
+first_rts = fixations$fix_time[fixations$fix_num==1]
 
 weiblnL <- function(theta, rt){
   
@@ -32,6 +33,14 @@ weiblnL <- function(theta, rt){
   }
 }
 
+# FIRST RTS
+fit <- optim(c(1,1.8,mean(first_rts)),      # mean rt is a good starting point for scale
+             weiblnL, rt=first_rts)
+
+hist(first_rts, probability = TRUE, breaks=40)
+lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
+
+# MID RTS
 # parameters are shift, scale, shape
 fit <- optim(c(1,1.8,mean(mid_rts)),      # mean rt is a good starting point for scale
              weiblnL, rt=mid_rts)
@@ -39,6 +48,15 @@ fit <- optim(c(1,1.8,mean(mid_rts)),      # mean rt is a good starting point for
 hist(mid_rts, probability = TRUE, breaks=40)
 lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
 fit
+
+shift_group = fit$par[1]
+shape_group = fit$par[2]
+scale_group = fit$par[3]
+
+
+lines(0:6000, dweibull((0:6000)-shift_group,shape=shape_group, scale=scale_group), col=3, lwd=2)
+
+
 ```
 
 # ISOLATE INDIVIDUAL MIDDLE FIXATIONS 
@@ -57,6 +75,10 @@ v3 <- v3_clean
 df1 <- v1
 df2 <- v3
 
+# check how many first fixations
+first_fix_num_1 = length(df1$Trial) 
+first_fix_num_2 = length(df2$trial)
+
 # create num_fixations for df1
 for (i in 1:length(df1$Trial)){
   df1$num_fixations[i] = length(df1$imageSequence[[i]])
@@ -71,10 +93,14 @@ mid_fix_num_1 = sum(df1$num_fixations) - 2*length(df1$Trial)
 mid_fix_num_2 = sum(df2$num_fixations) - 2*length(df2$trial)
 
 # define empty df
-middle_fix_df1 <- data.frame(matrix(ncol = 4, nrow = mid_fix_num_1))
+first_fix_df1 <- data.frame(matrix(ncol = 4, nrow = first_fix_num_1))
+colnames(first_fix_df1) <- c("subject", "fix_dur", "base_val", "mult_val")
+middle_fix_df1 <- data.frame(matrix(ncol = 4, nrow = first_fix_num_1))
 colnames(middle_fix_df1) <- c("subject", "fix_dur", "base_val", "mult_val")
 
-middle_fix_df2 <- data.frame(matrix(ncol = 4, nrow = mid_fix_num_2))
+first_fix_df2 <- data.frame(matrix(ncol = 4, nrow = first_fix_num_2))
+colnames(first_fix_df2) <- c("subject", "fix_dur", "base_val", "mult_val")
+middle_fix_df2 <- data.frame(matrix(ncol = 4, nrow = first_fix_num_2))
 colnames(middle_fix_df2) <- c("subject", "fix_dur", "base_val", "mult_val")
 
 # populate dfs with middle fixations with: subject, fixation duration, base value and mult value
@@ -123,6 +149,32 @@ middle_fix_df1$abs_base_val = abs(middle_fix_df1$base_val)
 middle_fix_df2$abs_base_val = abs(middle_fix_df2$base_val)
 
 head(middle_fix_df1)
+
+# First fixations
+counter = 1
+
+for (i in 1:length(df2$trial)){
+  
+  first_fix_df2$subject[counter] = df2$subject[i]
+  first_fix_df2$fix_dur[counter] = df2[i,33]
+  first_fix_df2$base_val[counter] = df2$first_val[i] / df2$first_mult[i]
+  first_fix_df2$mult_val[counter] = df2$first_mult[i]
+  
+  counter = counter + 1
+}
+
+counter = 1
+
+for (i in 1:length(df1$Trial)){
+  
+  first_fix_df1$subject[counter] = df1$subject[i]
+  first_fix_df1$fix_dur[counter] = df1[i,48]
+  first_fix_df1$base_val[counter] = df1$firstVal[i] / df1$firstMult[i]
+  first_fix_df1$mult_val[counter] = df1$firstMult[i]
+  
+  counter = counter + 1
+}
+
 ```
 
 ## Plot
@@ -196,6 +248,10 @@ middle_fix_df1 = middle_fix_df1[middle_fix_df1$subject != 7,]
 middle_fix_df2 = middle_fix_df2[middle_fix_df2$subject != 139,]
 middle_fix_df2 = middle_fix_df2[middle_fix_df2$subject != 141,]
 
+# Remove first fix above 7 sec
+length(first_fix_df2$subject)
+first_fix_df2 = first_fix_df2[first_fix_df2$fix_dur<7,]
+
 # Fit weibull to all subjects
 # Make a matrix of times
 
@@ -222,6 +278,29 @@ for (i in 1:length(unique(df_in$subject))){
 # convert to ms from s
 mid_mat = mid_mat* 1000
 
+# Study 1 or 2?
+df_in = first_fix_df1
+
+# Find the max number of fixations for an individual
+dt <- data.table(df_in)
+n_cols = max(dt[,list(max_fix=max(length(fix_dur))),
+                by=subject]$max_fix)
+
+# Create empty matrix 
+first_mat = matrix(nrow =length(unique(df_in$subject)), ncol = n_cols)
+
+# Vector with subject numbers
+subjects = unique(df_in$subject)
+
+# Fill matrix with RTs
+for (i in 1:length(unique(df_in$subject))){
+  x = length(df_in$fix_dur[df_in$subject == subjects[i]])
+  first_mat[i,1:x] = df_in$fix_dur[df_in$subject == subjects[i]]
+}
+
+# convert to ms from s
+first_mat = first_mat* 1000
+
 ```
 
 # Fit Subjects to WEIBULL and Plot
@@ -236,6 +315,7 @@ subject_fits = NULL
 # 3x3 plot
 par(mfrow=c(3,3))
 
+# MID RTS
 for (i in 1:length(mid_mat[,1])) {
   rts = mid_mat[i,]
   rts = rts[!is.na(rts)]
@@ -247,6 +327,29 @@ for (i in 1:length(mid_mat[,1])) {
   hist(rts, probability = TRUE, breaks=40,
        main = paste0("Subject ", i, " middle fixations"))
   lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
+  lines(0:6000, dweibull((0:6000)-shift_group,shape=shape_group, scale=scale_group), col=2, lwd=2)
+
+  
+  subject_fits[[i]] = fit
+}
+
+# 3x3 plot
+par(mfrow=c(3,3))
+
+# FIRST RTS
+for (i in 1:length(first_mat[,1])) {
+  rts = first_mat[i,]
+  rts = rts[!is.na(rts)]
+
+  # parameters are shift, scale, shape
+  fit <- optim(c(1,1.8,mean(rts)),      # mean rt is a good starting point for scale
+               weiblnL, rt=rts)
+  
+  hist(rts, probability = TRUE, breaks=40,
+       main = paste0("Subject ", i, " first fixations"))
+  lines(0:6000, dweibull((0:6000)-fit$par[1],shape=fit$par[2], scale=fit$par[3]), col=3, lwd=2)
+  lines(0:6000, dweibull((0:6000)-shift_group,shape=shape_group, scale=scale_group), col=2, lwd=2)
+
   
   subject_fits[[i]] = fit
 }
@@ -344,12 +447,7 @@ legend("right", legend = c("data", "predictions"), pch = c(2, 1), lty = c(0, 1))
 
 ```{r}
 # Bin by count
-head(middle_fix_df1)
-library(lambda.tools)
-x <- seq(-2, 2, by=.1)  
-quantize(x)
 
-quantize(x, bins=-1.5:1.5)
 
 ```
 
